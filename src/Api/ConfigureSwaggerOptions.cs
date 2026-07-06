@@ -32,9 +32,9 @@ public class ConfigureSwaggerOptions(IApiVersionDescriptionProvider provider)
             In = ParameterLocation.Header,
             Description = "শুধু access token paste করো (Swagger নিজে 'Bearer ' যোগ করবে)।"
         });
-        options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
+        options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
         {
-            { new OpenApiSecuritySchemeReference("Bearer", null), new List<string>() }
+            { new OpenApiSecuritySchemeReference("Bearer", document), new List<string>() }
         });
     }
 }
