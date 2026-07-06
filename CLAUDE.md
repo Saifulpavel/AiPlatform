@@ -13,6 +13,7 @@
 
 ## Conventions
 - প্রতিটা capability = আলাদা, স্বাধীনভাবে-testable feature (`Application/Features/<Name>`)।
+- **এক type = এক ফাইল।** Command/Query, Validator, Handler আলাদা ফাইলে (এক ফাইলে জড়ো নয়)।
 - Generic reusable code ও app-specific/demo code আলাদা রাখো (boilerplate goal — PLAN §4)।
 - Interface Application-এ, implementation Infrastructure-এ (IChatProvider, IVectorStore…)।
 - নতুন external service DI: `Infrastructure/DependencyInjection.cs`।

@@ -21,5 +21,20 @@ public class ConfigureSwaggerOptions(IApiVersionDescriptionProvider provider)
                 Description = desc.IsDeprecated ? "এই version deprecated" : "Production-grade AI platform API"
             });
         }
+
+        // "Authorize" button — JWT access token paste করে protected endpoint call করা যায়
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "শুধু access token paste করো (Swagger নিজে 'Bearer ' যোগ করবে)।"
+        });
+        options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
+        {
+            { new OpenApiSecuritySchemeReference("Bearer", null), new List<string>() }
+        });
     }
 }

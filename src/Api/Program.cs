@@ -31,7 +31,9 @@ try
     var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
         ?? throw new InvalidOperationException("Jwt config অনুপস্থিত।");
     if (string.IsNullOrWhiteSpace(jwtSettings.SecretKey))
-        throw new InvalidOperationException("Jwt:SecretKey সেট নেই (user-secrets/env এ দাও)।");
+        throw new InvalidOperationException(
+            $"Jwt:SecretKey সেট নেই। Current environment = '{builder.Environment.EnvironmentName}'. " +
+            "Development হলে appsettings.Development.json/user-secrets দেখো; না হলে VS profile Development-এ দাও।");
 
     builder.Services
         .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -113,6 +115,10 @@ try
 
     app.MapControllers();
     app.MapHealthChecks("/health");
+
+    // base role (User, Admin) নিশ্চিত করো
+    using (var scope = app.Services.CreateScope())
+        await AiPlatform.Infrastructure.Persistence.IdentitySeeder.SeedRolesAsync(scope.ServiceProvider);
 
     app.Run();
 }
