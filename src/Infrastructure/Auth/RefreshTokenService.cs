@@ -1,29 +1,97 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using AiPlatform.Application.Common.Interfaces;
 using AiPlatform.Application.Common.Models;
+using AiPlatform.Application.Common.Results;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 namespace AiPlatform.Infrastructure.Auth;
 
-// Refresh token = opaque random string, Redis-এ TTL সহ। value = userId।
-// 1d এ rotation + reuse-detection (token family) যোগ হবে।
+// Token-family rotation + reuse-detection, Redis-এ।
+//   refresh:{token}   → { userId, familyId }   (token চিনতে)
+//   family:{familyId} → { userId, currentToken } (family-র বর্তমান বৈধ token)
+// rotate করলে currentToken বদলায়; পুরনো token আবার এলে (currentToken != presented) = reuse → family revoke।
 public class RefreshTokenService(IConnectionMultiplexer redis, IOptions<JwtSettings> options)
     : IRefreshTokenService
 {
     private readonly JwtSettings _settings = options.Value;
-    private const string KeyPrefix = "refresh:";
+    private TimeSpan Ttl => TimeSpan.FromDays(_settings.RefreshTokenDays);
+
+    private static string TokenKey(string token) => $"refresh:{token}";
+    private static string FamilyKey(string familyId) => $"family:{familyId}";
+
+    private record TokenEntry(string UserId, string FamilyId);
+    private record FamilyEntry(string UserId, string CurrentToken);
 
     public async Task<RefreshTokenResult> IssueAsync(string userId, CancellationToken cancellationToken)
     {
-        var token = GenerateSecureToken();
-        var ttl = TimeSpan.FromDays(_settings.RefreshTokenDays);
-        var expiresAtUtc = DateTime.UtcNow.Add(ttl);
+        var familyId = Guid.NewGuid().ToString("N");
+        return await CreateTokenInFamilyAsync(userId, familyId);
+    }
 
+    public async Task<Result<RefreshRotation>> RotateAsync(string presentedToken, CancellationToken cancellationToken)
+    {
         var db = redis.GetDatabase();
-        await db.StringSetAsync($"{KeyPrefix}{token}", userId, ttl);
+
+        var tokenJson = await db.StringGetAsync(TokenKey(presentedToken));
+        if (tokenJson.IsNullOrEmpty)
+            return Error.Unauthorized("Auth.InvalidRefreshToken", "Invalid or expired refresh token.");
+
+        var entry = JsonSerializer.Deserialize<TokenEntry>(tokenJson.ToString())!;
+
+        var familyJson = await db.StringGetAsync(FamilyKey(entry.FamilyId));
+        if (familyJson.IsNullOrEmpty)
+            return Error.Unauthorized("Auth.InvalidRefreshToken", "Invalid or expired refresh token.");
+
+        var family = JsonSerializer.Deserialize<FamilyEntry>(familyJson.ToString())!;
+
+        // presented token family-র current নয় → superseded token replay → reuse attack
+        if (family.CurrentToken != presentedToken)
+        {
+            await RevokeFamilyAsync(db, entry.FamilyId, family.CurrentToken);
+            return Error.Unauthorized("Auth.RefreshTokenReuse", "Refresh token reuse detected. Session revoked.");
+        }
+
+        // বৈধ rotation
+        var rotated = await CreateTokenInFamilyAsync(entry.UserId, entry.FamilyId);
+        return new RefreshRotation(entry.UserId, rotated);
+    }
+
+    public async Task RevokeAsync(string presentedToken, CancellationToken cancellationToken)
+    {
+        var db = redis.GetDatabase();
+        var tokenJson = await db.StringGetAsync(TokenKey(presentedToken));
+        if (tokenJson.IsNullOrEmpty)
+            return;   // idempotent
+
+        var entry = JsonSerializer.Deserialize<TokenEntry>(tokenJson.ToString())!;
+        var familyJson = await db.StringGetAsync(FamilyKey(entry.FamilyId));
+        var currentToken = familyJson.IsNullOrEmpty
+            ? presentedToken
+            : JsonSerializer.Deserialize<FamilyEntry>(familyJson.ToString())!.CurrentToken;
+
+        await RevokeFamilyAsync(db, entry.FamilyId, currentToken);
+    }
+
+    // family-র current token সেট করে নতুন token বানায় (issue + rotate দুটোই ব্যবহার করে)
+    private async Task<RefreshTokenResult> CreateTokenInFamilyAsync(string userId, string familyId)
+    {
+        var db = redis.GetDatabase();
+        var token = GenerateSecureToken();
+        var expiresAtUtc = DateTime.UtcNow.Add(Ttl);
+
+        await db.StringSetAsync(TokenKey(token), JsonSerializer.Serialize(new TokenEntry(userId, familyId)), Ttl);
+        await db.StringSetAsync(FamilyKey(familyId), JsonSerializer.Serialize(new FamilyEntry(userId, token)), Ttl);
 
         return new RefreshTokenResult(token, expiresAtUtc);
+    }
+
+    private static async Task RevokeFamilyAsync(IDatabase db, string familyId, string currentToken)
+    {
+        await db.KeyDeleteAsync(FamilyKey(familyId));
+        await db.KeyDeleteAsync(TokenKey(currentToken));
+        // পুরনো superseded token গুলো নিজ TTL-এ মরবে; family নেই বলে সেগুলো দিয়ে rotate করলেও fail
     }
 
     // 256-bit cryptographically-secure token, URL-safe

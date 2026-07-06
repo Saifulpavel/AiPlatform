@@ -1,10 +1,17 @@
 using AiPlatform.Application.Common.Models;
+using AiPlatform.Application.Common.Results;
 
 namespace AiPlatform.Application.Common.Interfaces;
 
-// Refresh token Redis-এ থাকে। 1d এ rotation + reuse-detection যোগ হবে।
+// Refresh token Redis-এ token-family হিসেবে থাকে (rotation + reuse-detection)।
 public interface IRefreshTokenService
 {
-    // নতুন refresh token বানিয়ে store করে ফেরত দেয়।
+    // login: নতুন family + token।
     Task<RefreshTokenResult> IssueAsync(string userId, CancellationToken cancellationToken);
+
+    // refresh: token যাচাই + rotate। পুরনো (superseded) token এলে reuse → family revoke → failure।
+    Task<Result<RefreshRotation>> RotateAsync(string presentedToken, CancellationToken cancellationToken);
+
+    // logout: token-এর পুরো family revoke (idempotent)।
+    Task RevokeAsync(string presentedToken, CancellationToken cancellationToken);
 }

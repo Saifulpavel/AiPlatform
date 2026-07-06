@@ -11,4 +11,7 @@ public interface IIdentityService
 
     // credential যাচাই (lockout সহ); সফল হলে token বানানোর মতো user তথ্য।
     Task<Result<AuthUser>> ValidateCredentialsAsync(string email, string password, CancellationToken cancellationToken);
+
+    // refresh-এর সময় নতুন access token বানাতে current user তথ্য (roles সহ)।
+    Task<Result<AuthUser>> GetUserByIdAsync(string userId, CancellationToken cancellationToken);
 }
