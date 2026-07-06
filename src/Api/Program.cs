@@ -1,11 +1,14 @@
+using System.Text;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using AiPlatform.Api;
+using AiPlatform.Api.Common;
 using AiPlatform.Application;
 using AiPlatform.Infrastructure;
+using AiPlatform.Infrastructure.Auth;
 
 // --- Bootstrap logger: startup crash-ও যেন log হয় ---
 Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
@@ -24,10 +27,35 @@ try
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
 
+    // --- JWT authentication ---
+    var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
+        ?? throw new InvalidOperationException("Jwt config অনুপস্থিত।");
+    if (string.IsNullOrWhiteSpace(jwtSettings.SecretKey))
+        throw new InvalidOperationException("Jwt:SecretKey সেট নেই (user-secrets/env এ দাও)।");
+
+    builder.Services
+        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtSettings.Issuer,
+                ValidAudience = jwtSettings.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+                ClockSkew = TimeSpan.Zero   // exp ঠিক ১৫ মিনিটেই শেষ, default ৫ মিনিট ছাড় না
+            };
+        });
+    builder.Services.AddAuthorization();
+
     builder.Services.AddControllers();
 
-    // ProblemDetails — সব error RFC 7807 format-এ যাবে
+    // ProblemDetails + global exception handler — unexpected error consistent RFC 7807
     builder.Services.AddProblemDetails();
+    builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
     // API versioning — সব endpoint /api/v{n}; version না দিলে v1 ধরে
     builder.Services
@@ -80,6 +108,7 @@ try
 
     app.UseHttpsRedirection();
     app.UseCors("frontend");
+    app.UseAuthentication();
     app.UseAuthorization();
 
     app.MapControllers();
