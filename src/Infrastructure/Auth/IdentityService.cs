@@ -58,4 +58,27 @@ public class IdentityService(
         var roles = await userManager.GetRolesAsync(user);
         return new AuthUser(user.Id, user.Email!, user.FullName, roles.ToList());
     }
+
+    public async Task<string?> GeneratePasswordResetTokenAsync(string email, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        return user is null ? null : await userManager.GeneratePasswordResetTokenAsync(user);
+    }
+
+    public async Task<Result> ResetPasswordAsync(string email, string token, string newPassword, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        // user নেই বা token খারাপ — একই generic message (enumeration রোধ)
+        if (user is null)
+            return Error.Validation("Auth.ResetPassword", "Invalid password reset request.");
+
+        var result = await userManager.ResetPasswordAsync(user, token, newPassword);
+        if (!result.Succeeded)
+        {
+            var description = string.Join("; ", result.Errors.Select(e => e.Description));
+            return Error.Validation("Auth.ResetPassword", description);
+        }
+
+        return Result.Success();
+    }
 }

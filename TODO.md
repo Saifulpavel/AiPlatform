@@ -1,7 +1,7 @@
 # TODO — phase tracker (details: PLAN.md)
 
 - [x] **Phase 0 — Foundation**: sln + 4 layers + tests, DI wiring, Serilog, ProblemDetails, Swagger(versioned), CORS, health, `/api/v1/ping`, .gitignore, .env.example, README, CLAUDE.md. ✔ build+run verified.
-- [ ] Phase 1 — Auth (Identity + JWT + refresh rotation, Redis, SQL Server)
+- [x] **Phase 1 — Auth** ✔ Identity+JWT (access in-memory), refresh rotation+reuse-detection (Redis family), register/login/refresh/logout/me/forgot/reset, auth rate-limit, Swagger Bearer, 12 unit tests. Commits: 1a `b8db1fc` · 1b `c2f7490` · 1c `04b6a1d` · 1d `71bfb83` · swagger-fix `5ea803f`
 - [ ] Phase 2 — LLM core (chat + analyzer, provider abstraction, streaming)
 - [ ] Phase 3 — RAG + Qdrant (upload + background ingestion + citations)
 - [ ] Phase 4 — Frontend core (premium auth, silent refresh, chat/RAG UI)

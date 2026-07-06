@@ -14,4 +14,10 @@ public interface IIdentityService
 
     // refresh-এর সময় নতুন access token বানাতে current user তথ্য (roles সহ)।
     Task<Result<AuthUser>> GetUserByIdAsync(string userId, CancellationToken cancellationToken);
+
+    // forgot-password: user থাকলে reset token, না থাকলে null (caller enumeration লুকায়)।
+    Task<string?> GeneratePasswordResetTokenAsync(string email, CancellationToken cancellationToken);
+
+    // reset-password: token দিয়ে নতুন password সেট।
+    Task<Result> ResetPasswordAsync(string email, string token, string newPassword, CancellationToken cancellationToken);
 }

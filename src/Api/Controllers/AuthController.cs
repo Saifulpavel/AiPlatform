@@ -2,10 +2,12 @@ using System.Security.Claims;
 using Asp.Versioning;
 using AiPlatform.Api.Common;
 using AiPlatform.Api.Contracts;
+using AiPlatform.Application.Features.Auth.ForgotPassword;
 using AiPlatform.Application.Features.Auth.Login;
 using AiPlatform.Application.Features.Auth.Logout;
 using AiPlatform.Application.Features.Auth.Refresh;
 using AiPlatform.Application.Features.Auth.Register;
+using AiPlatform.Application.Features.Auth.ResetPassword;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +20,7 @@ public class AuthController(IMediator mediator, IWebHostEnvironment environment)
 {
     private const string RefreshCookieName = "refreshToken";
 
+    [RateLimit(5, 60)]
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest request, CancellationToken cancellationToken)
     {
@@ -29,6 +32,7 @@ public class AuthController(IMediator mediator, IWebHostEnvironment environment)
             : ToProblem(result.Error);
     }
 
+    [RateLimit(10, 60)]
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
     {
@@ -41,6 +45,27 @@ public class AuthController(IMediator mediator, IWebHostEnvironment environment)
 
         // access token শুধু body-তে (frontend memory-তে রাখবে, localStorage নয়)
         return Ok(new { accessToken = auth.AccessToken, expiresAtUtc = auth.AccessTokenExpiresAtUtc });
+    }
+
+    [RateLimit(5, 60)]
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        await mediator.Send(new ForgotPasswordCommand(request.Email), cancellationToken);
+        // সবসময় একই response — email আছে কিনা reveal করি না
+        return Ok(new { message = "If the email exists, a password reset link has been sent." });
+    }
+
+    [RateLimit(10, 60)]
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new ResetPasswordCommand(request.Email, request.Token, request.NewPassword), cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(new { message = "Password has been reset. You can now log in." })
+            : ToProblem(result.Error);
     }
 
     [HttpPost("refresh")]
