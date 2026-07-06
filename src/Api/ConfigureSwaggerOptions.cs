@@ -1,0 +1,25 @@
+using Asp.Versioning.ApiExplorer;
+using Microsoft.Extensions.Options;
+using Microsoft.OpenApi;
+using Swashbuckle.AspNetCore.SwaggerGen;
+
+namespace AiPlatform.Api;
+
+// প্রতিটি API version-এর জন্য একটা করে Swagger doc বানায়।
+// Phase 1 এ এখানেই JWT security definition যোগ হবে।
+public class ConfigureSwaggerOptions(IApiVersionDescriptionProvider provider)
+    : IConfigureOptions<SwaggerGenOptions>
+{
+    public void Configure(SwaggerGenOptions options)
+    {
+        foreach (var desc in provider.ApiVersionDescriptions)
+        {
+            options.SwaggerDoc(desc.GroupName, new OpenApiInfo
+            {
+                Title = "AiPlatform API",
+                Version = desc.ApiVersion.ToString(),
+                Description = desc.IsDeprecated ? "এই version deprecated" : "Production-grade AI platform API"
+            });
+        }
+    }
+}
