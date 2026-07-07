@@ -30,10 +30,10 @@ public class QdrantRetriever(IEmbeddingProvider embeddingProvider, IVectorStore 
 
             var chunks = KnowledgeBaseSeed.Documents.SelectMany(d => TextChunker.Chunk(d)).ToList();
             var points = new List<VectorPoint>(chunks.Count);
-            for (var i = 0; i < chunks.Count; i++)
+            foreach (var chunk in chunks)
             {
-                var vector = await embeddingProvider.EmbedAsync(chunks[i], EmbeddingTaskType.RetrievalDocument, cancellationToken);
-                points.Add(new VectorPoint(i, vector, chunks[i]));
+                var vector = await embeddingProvider.EmbedAsync(chunk, EmbeddingTaskType.RetrievalDocument, cancellationToken);
+                points.Add(new VectorPoint(Guid.NewGuid().ToString(), vector, chunk));
             }
 
             await vectorStore.EnsureCollectionAsync(points[0].Vector.Length, cancellationToken);

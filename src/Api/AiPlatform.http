@@ -149,6 +149,45 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 
 
 ### ============================================================
+### Documents — upload → background ingest (chunk→embed→Qdrant) → status
+### upload করা doc method=qdrant RAG-এ auto চলে আসে।
+### ============================================================
+
+### upload — VALID (.txt/.md)
+# @name upload
+POST {{api}}/documents
+Authorization: Bearer {{login.response.body.$.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="faq.txt"
+Content-Type: text/plain
+
+প্রিমিয়াম গ্রাহকরা তাৎক্ষণিক রিফান্ড পান। রিফান্ড অনুরোধে অর্ডার নম্বর দিতে হবে।
+------Boundary--
+### Expected: 202, { documentId, status: "Pending" }
+
+### upload — INVALID (unsupported ext বা খালি file)
+POST {{api}}/documents
+Authorization: Bearer {{login.response.body.$.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="photo.png"
+Content-Type: image/png
+
+fake
+------Boundary--
+### Expected: 400 — "Only .txt and .md files are supported."
+
+### status (upload এর documentId auto)
+GET {{api}}/documents/{{upload.response.body.$.documentId}}
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 200, status Pending→Processing→Completed, processedChunks/totalChunks progress।
+### Completed হলে method=qdrant দিয়ে এই doc-এর প্রশ্ন করলে উত্তর আসবে।
+
+
+### ============================================================
 ### RAG — keyword বনাম embedding পার্থক্য বোঝার জন্য সাজানো
 ### ------------------------------------------------------------
 ### KB-তে আছে হুবহু শব্দ: "পেমেন্ট", "bKash" (ল্যাটিন), "রিটার্ন", "ডেলিভারি" ...

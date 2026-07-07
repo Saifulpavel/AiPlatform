@@ -67,6 +67,11 @@ public static class DependencyInjection
         services.AddSingleton<IRetriever, Rag.QdrantRetriever>();
         services.AddSingleton<IRetrieverResolver, Rag.RetrieverResolver>();
 
+        // Document ingestion (upload → background chunk→embed→upsert)
+        services.AddScoped<IDocumentRepository, Persistence.DocumentRepository>();
+        services.AddSingleton<IIngestionQueue, Ingestion.InMemoryIngestionQueue>();
+        services.AddHostedService<Ingestion.IngestionBackgroundService>();
+
         return services;
     }
 }
