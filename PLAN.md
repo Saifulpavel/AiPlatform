@@ -7,6 +7,9 @@
 
 ---
 
+## North Star — কোথায় যাচ্ছি
+এখন **very basic** দিয়ে শুরু (hosted LLM API, in-memory/simple)। কিন্তু লক্ষ্য একটা **production-level product**। ধাপে ধাপে যোগ হবে: **local/self-hosted LLM** (Ollama/vLLM ইত্যাদি), **MCP server + tool-agent**, এবং প্রয়োজনমতো আরও infra। তাই প্রতিটা abstraction (`IChatProvider`, `IVectorStore`, feature toggle) এমনভাবে বানাব যেন পরে hosted→local, বা নতুন capability plug করা সহজ — কোড rewrite ছাড়া। "basic এখন" মানে "সরল", "স্থায়ীভাবে ছোট" নয়।
+
 ## 0. এই ডকুমেন্ট কী
 
 তিনটা জিনিস এক জায়গায়:

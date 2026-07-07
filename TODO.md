@@ -2,7 +2,11 @@
 
 - [x] **Phase 0 — Foundation**: sln + 4 layers + tests, DI wiring, Serilog, ProblemDetails, Swagger(versioned), CORS, health, `/api/v1/ping`, .gitignore, .env.example, README, CLAUDE.md. ✔ build+run verified.
 - [x] **Phase 1 — Auth** ✔ Identity+JWT (access in-memory), refresh rotation+reuse-detection (Redis family), register/login/refresh/logout/me/forgot/reset, auth rate-limit, Swagger Bearer, 12 unit tests. Commits: 1a `b8db1fc` · 1b `c2f7490` · 1c `04b6a1d` · 1d `71bfb83` · swagger-fix `5ea803f`
-- [ ] Phase 2 — LLM core (chat + analyzer, provider abstraction, streaming)
+- [x] **Phase 2 — LLM core** (branch `feature/phase-2-llm-core`)
+  - [x] 2a — provider abstraction + multi-provider chat (`6090340`); gemini/groq/mistral working, cerebras/openrouter/github deferred
+  - [x] 2b — SSE streaming chat (`f3a32bb`)
+  - [x] 2c — structured analyzer (message → typed JSON); hybrid Bengali prompt
+  - [x] 2d — chat + analyzer handler tests (17 tests total pass)
 - [ ] Phase 3 — RAG + Qdrant (upload + background ingestion + citations)
 - [ ] Phase 4 — Frontend core (premium auth, silent refresh, chat/RAG UI)
 - [ ] Phase 5 — Docker + load balancing (nginx, api×2, redis, qdrant, sqlserver)

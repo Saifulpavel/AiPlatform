@@ -14,6 +14,7 @@
 ## Conventions
 - প্রতিটা capability = আলাদা, স্বাধীনভাবে-testable feature (`Application/Features/<Name>`)।
 - **এক type = এক ফাইল।** Command/Query, Validator, Handler আলাদা ফাইলে (এক ফাইলে জড়ো নয়)।
+- **LLM prompt = hybrid:** instruction/structure **English** (format/JSON বেশি reliable), কিন্তু explicit বলো output **বাংলায়** দিতে (free-text field: summary, answer ইত্যাদি বাংলায়)। enum value English। analyzer/RAG/future সব prompt এই নিয়মে।
 - Generic reusable code ও app-specific/demo code আলাদা রাখো (boilerplate goal — PLAN §4)।
 - Interface Application-এ, implementation Infrastructure-এ (IChatProvider, IVectorStore…)।
 - নতুন external service DI: `Infrastructure/DependencyInjection.cs`।
