@@ -1,3 +1,4 @@
+using AiPlatform.Application.Common.Exceptions;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -51,6 +52,12 @@ public class GlobalExceptionHandler(
                 v.Errors
                     .GroupBy(e => e.PropertyName)
                     .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).Distinct().ToArray())),
+
+            // upstream LLM fail → 502, raw body leak না (log-এ থাকে)
+            LlmProviderException llm => (
+                StatusCodes.Status502BadGateway,
+                $"The '{llm.Provider}' LLM provider is unavailable (upstream status {llm.StatusCode}).",
+                null),
 
             // internal detail leak না — generic message
             _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.", null)

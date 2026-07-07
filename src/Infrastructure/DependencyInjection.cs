@@ -53,6 +53,12 @@ public static class DependencyInjection
         services.AddSingleton<IRefreshTokenService, RefreshTokenService>();
         services.AddSingleton<IEmailSender, Email.LoggingEmailSender>();
 
+        // LLM providers — config-driven (key user-secrets), HttpClient factory দিয়ে
+        services.Configure<Llm.LlmSettings>(configuration.GetSection(Llm.LlmSettings.SectionName));
+        services.AddHttpClient("llm");
+        services.AddSingleton<IChatProviderResolver, Llm.ChatProviderResolver>();
+        services.AddSingleton<IEmbeddingProvider, Llm.GeminiEmbeddingProvider>();
+
         return services;
     }
 }
