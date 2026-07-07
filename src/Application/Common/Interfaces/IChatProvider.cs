@@ -10,4 +10,7 @@ public interface IChatProvider
 
     // token-by-token stream (SSE-এর জন্য)।
     IAsyncEnumerable<string> StreamAsync(IReadOnlyList<ChatMessage> messages, CancellationToken cancellationToken);
+
+    // JSON-mode — model শুধু valid JSON string ফেরত দেয় (structured output-এর জন্য)।
+    Task<string> CompleteJsonAsync(IReadOnlyList<ChatMessage> messages, CancellationToken cancellationToken);
 }

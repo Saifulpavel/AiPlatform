@@ -5,7 +5,7 @@
 - [~] Phase 2 — LLM core (branch `feature/phase-2-llm-core`)
   - [x] 2a — provider abstraction + multi-provider chat (`6090340`); gemini/groq/mistral working, cerebras/openrouter/github deferred
   - [x] 2b — SSE streaming chat
-  - [ ] 2c — structured analyzer (message → typed JSON)
+  - [x] 2c — structured analyzer (message → typed JSON); groq/mistral verified
   - [ ] 2d — provider switch + handler tests
 - [ ] Phase 3 — RAG + Qdrant (upload + background ingestion + citations)
 - [ ] Phase 4 — Frontend core (premium auth, silent refresh, chat/RAG UI)

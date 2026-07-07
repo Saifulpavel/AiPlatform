@@ -39,6 +39,31 @@ public class OpenAiCompatibleChatProvider(IHttpClientFactory httpClientFactory, 
         return new ChatResult(text, Name, config.Model);
     }
 
+    public async Task<string> CompleteJsonAsync(IReadOnlyList<ChatMessage> messages, CancellationToken cancellationToken)
+    {
+        var body = new
+        {
+            model = config.Model,
+            response_format = new { type = "json_object" },   // JSON বাধ্যতামূলক
+            messages = messages.Select(m => new { role = m.Role, content = m.Content }).ToArray()
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, config.BaseUrl);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiKey);
+        request.Content = JsonContent.Create(body);
+
+        var http = httpClientFactory.CreateClient("llm");
+        using var response = await http.SendAsync(request, cancellationToken);
+        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new LlmProviderException(Name, (int)response.StatusCode, raw);
+
+        using var doc = JsonDocument.Parse(raw);
+        return doc.RootElement
+            .GetProperty("choices")[0].GetProperty("message")
+            .GetProperty("content").GetString() ?? "{}";
+    }
+
     public async IAsyncEnumerable<string> StreamAsync(
         IReadOnlyList<ChatMessage> messages,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)

@@ -48,6 +48,36 @@ public class GeminiChatProvider(IHttpClientFactory httpClientFactory, string nam
         return new ChatResult(text, Name, config.Model);
     }
 
+    public async Task<string> CompleteJsonAsync(IReadOnlyList<ChatMessage> messages, CancellationToken cancellationToken)
+    {
+        var url = $"https://generativelanguage.googleapis.com/v1beta/models/{config.Model}:generateContent";
+        var contents = messages
+            .Where(m => m.Role != "system")
+            .Select(m => new { role = m.Role == "assistant" ? "model" : "user", parts = new[] { new { text = m.Content } } })
+            .ToArray();
+        var systemText = messages.FirstOrDefault(m => m.Role == "system")?.Content;
+
+        // responseMimeType = application/json → JSON বাধ্যতামূলক
+        object body = systemText is null
+            ? new { contents, generationConfig = new { responseMimeType = "application/json" } }
+            : new { contents, systemInstruction = new { parts = new[] { new { text = systemText } } }, generationConfig = new { responseMimeType = "application/json" } };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, url);
+        request.Headers.Add("x-goog-api-key", config.ApiKey);
+        request.Content = JsonContent.Create(body);
+
+        var http = httpClientFactory.CreateClient("llm");
+        using var response = await http.SendAsync(request, cancellationToken);
+        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new LlmProviderException(Name, (int)response.StatusCode, raw);
+
+        using var doc = JsonDocument.Parse(raw);
+        return doc.RootElement
+            .GetProperty("candidates")[0].GetProperty("content")
+            .GetProperty("parts")[0].GetProperty("text").GetString() ?? "{}";
+    }
+
     public async IAsyncEnumerable<string> StreamAsync(
         IReadOnlyList<ChatMessage> messages,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
