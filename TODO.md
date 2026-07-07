@@ -7,7 +7,12 @@
   - [x] 2b — SSE streaming chat (`f3a32bb`)
   - [x] 2c — structured analyzer (message → typed JSON); hybrid Bengali prompt
   - [x] 2d — chat + analyzer handler tests (17 tests total pass)
-- [ ] Phase 3 — RAG + Qdrant (upload + background ingestion + citations)
+- [ ] Phase 3 — RAG + Qdrant (branch `feature/phase-3-rag-qdrant`)
+  - [x] 3a — keyword RAG (IRetriever + resolver, seed KB, grounded Bengali answer + sources)
+  - [ ] 3b — embedding RAG + chunking (uses IEmbeddingProvider)
+  - [ ] 3c — Qdrant vector store (IVectorStore abstraction) + upsert
+  - [ ] 3d — document upload + background ingestion (chunk→embed→upsert)
+  - [ ] 3e — citations (source chunks) + tests
 - [ ] Phase 4 — Frontend core (premium auth, silent refresh, chat/RAG UI)
 - [ ] Phase 5 — Docker + load balancing (nginx, api×2, redis, qdrant, sqlserver)
 - [ ] Phase 6 — AI-specific (semantic cache, routing, observability, guardrails, rerank, memory, evals)
