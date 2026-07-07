@@ -73,7 +73,7 @@ AiPlatform.sln
 │  └─ Infrastructure → EF Core, Identity, Redis, Qdrant, LLM providers, Serilog
 ├─ tests/
 │  └─ Application.Tests (xUnit)
-└─ (frontend আলাদা repo/folder: web/)
+└─ (backend/ ও frontend/ — দুই top-level folder, এক repo)
 ```
 Dependency rule: Api → Application → Domain; Infrastructure → Application/Domain। Domain কিছুর উপর নির্ভর করে না।
 
@@ -113,8 +113,9 @@ App-specific সব এক জায়গায় (`*.Demo` namespace + `seed/
 - keyword / embedding / chunking / Qdrant (`IVectorStore`)। document upload endpoint + background ingestion (chunk→embed→upsert)। citations।
 - **Checkpoint:** upload করা doc-এ RAG উত্তর + source chunks দেখায়।
 
-### Phase 4 — Frontend core
-- Vite+TS+Tailwind+shadcn। premium login/register (split-screen, dark mode, Google button placeholder)। axios interceptor silent-refresh, protected routes, React Query। chat + RAG + upload UI।
+### Phase 4 — Frontend core (`frontend/` folder)
+- Vite+TS+Tailwind+shadcn, react-hook-form+zod, framer-motion, sonner। **Redux Toolkit + RTK Query** (state/data)। premium login/register (split-screen, dark mode, Google button placeholder)। silent-refresh via RTK Query custom baseQuery (re-auth), protected routes। chat + RAG + upload UI। feature-based (`src/features/{auth,chat,rag,documents}`), backend feature-এর mirror।
+- Repo restructure: `src/`,`tests/`,`.slnx` → `backend/`; frontend → `frontend/`।
 - **Checkpoint:** browser থেকে login → chat → RAG পুরো flow।
 
 ### Phase 5 — Docker + Load balancing
