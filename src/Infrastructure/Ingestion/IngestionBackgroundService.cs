@@ -57,7 +57,8 @@ public class IngestionBackgroundService(
                 await vectorStore.EnsureCollectionAsync(vector.Length, cancellationToken);
                 ensured = true;
             }
-            await vectorStore.UpsertAsync([new VectorPoint(Guid.NewGuid().ToString(), vector, chunk)], cancellationToken);
+            await vectorStore.UpsertAsync(
+                [new VectorPoint(Guid.NewGuid().ToString(), vector, chunk, document.FileName)], cancellationToken);
 
             document.ProcessedChunks++;
             await repository.SaveChangesAsync(cancellationToken);

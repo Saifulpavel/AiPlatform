@@ -14,9 +14,10 @@ public class RagQueryCommandHandler(
     private const int TopN = 3;
     private const string NotFoundAnswer = "দুঃখিত, এই তথ্যটি আমার কাছে নেই।";
 
-    // Hybrid prompt: instruction English (grounding মানা reliable), উত্তর বাংলায়।
+    // Hybrid prompt: instruction English (grounding মানা reliable), উত্তর বাংলায়, source নম্বর সহ (citation)।
     private const string SystemPrompt =
         "You are a company assistant. Answer the user's question using ONLY the provided context. " +
+        "Each context item is numbered like [1], [2]. Cite the numbers you used in your answer, e.g. [1]. " +
         "If the answer is not in the context, say you do not have that information — do not make anything up. " +
         "Answer in Bengali.";
 

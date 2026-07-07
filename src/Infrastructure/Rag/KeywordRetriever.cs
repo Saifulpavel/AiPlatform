@@ -18,7 +18,7 @@ public class KeywordRetriever : IRetriever
             .ToHashSet();
 
         IReadOnlyList<RetrievedChunk> ranked = KnowledgeBaseSeed.Documents
-            .Select(doc => new RetrievedChunk(doc, queryWords.Count(w => doc.Contains(w))))
+            .Select(doc => new RetrievedChunk(doc, queryWords.Count(w => doc.Contains(w)), "knowledge-base"))
             .Where(chunk => chunk.Score > 0)
             .OrderByDescending(chunk => chunk.Score)
             .Take(topN)

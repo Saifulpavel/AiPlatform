@@ -18,7 +18,7 @@ public class EmbeddingRetriever(IEmbeddingProvider embeddingProvider) : IRetriev
         var queryVector = await embeddingProvider.EmbedAsync(query, EmbeddingTaskType.RetrievalQuery, cancellationToken);
 
         return corpus
-            .Select(c => new RetrievedChunk(c.Chunk, VectorMath.CosineSimilarity(queryVector, c.Vector)))
+            .Select(c => new RetrievedChunk(c.Chunk, VectorMath.CosineSimilarity(queryVector, c.Vector), "knowledge-base"))
             .OrderByDescending(c => c.Score)
             .Take(topN)
             .ToList();

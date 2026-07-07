@@ -33,7 +33,7 @@ public class QdrantRetriever(IEmbeddingProvider embeddingProvider, IVectorStore 
             foreach (var chunk in chunks)
             {
                 var vector = await embeddingProvider.EmbedAsync(chunk, EmbeddingTaskType.RetrievalDocument, cancellationToken);
-                points.Add(new VectorPoint(Guid.NewGuid().ToString(), vector, chunk));
+                points.Add(new VectorPoint(Guid.NewGuid().ToString(), vector, chunk, "knowledge-base"));
             }
 
             await vectorStore.EnsureCollectionAsync(points[0].Vector.Length, cancellationToken);

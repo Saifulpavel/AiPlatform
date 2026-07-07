@@ -35,7 +35,7 @@ public class QdrantVectorStore(IHttpClientFactory httpClientFactory, IOptions<Qd
     {
         var payload = new
         {
-            points = points.Select(p => new { id = p.Id, vector = p.Vector, payload = new { text = p.Text } }).ToArray()
+            points = points.Select(p => new { id = p.Id, vector = p.Vector, payload = new { text = p.Text, source = p.Source } }).ToArray()
         };
 
         using var request = new HttpRequestMessage(HttpMethod.Put, $"{CollectionUrl}/points?wait=true")
@@ -62,9 +62,11 @@ public class QdrantVectorStore(IHttpClientFactory httpClientFactory, IOptions<Qd
         var results = new List<RetrievedChunk>();
         foreach (var point in points.EnumerateArray())
         {
-            var text = point.GetProperty("payload").GetProperty("text").GetString() ?? string.Empty;
+            var payload = point.GetProperty("payload");
+            var text = payload.GetProperty("text").GetString() ?? string.Empty;
+            var source = payload.TryGetProperty("source", out var s) ? s.GetString() : null;
             var score = point.GetProperty("score").GetDouble();
-            results.Add(new RetrievedChunk(text, score));
+            results.Add(new RetrievedChunk(text, score, source));
         }
         return results;
     }
