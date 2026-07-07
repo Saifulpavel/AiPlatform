@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Asp.Versioning;
 using AiPlatform.Api.Common;
 using AiPlatform.Api.Contracts;
@@ -18,5 +19,46 @@ public class ChatController(IMediator mediator) : ApiControllerBase
     {
         var result = await mediator.Send(new ChatCommand(request.Message, request.Provider), cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : ToProblem(result.Error);
+    }
+
+    // SSE streaming — token আসামাত্র client-এ পাঠায়
+    [HttpPost("stream")]
+    public async Task ChatStream(ChatRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Message))
+        {
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            await Response.WriteAsync("message is required", cancellationToken);
+            return;
+        }
+
+        Response.ContentType = "text/event-stream";
+        Response.Headers.CacheControl = "no-cache";
+
+        try
+        {
+            var stream = mediator.CreateStream(
+                new ChatStreamCommand(request.Message, request.Provider), cancellationToken);
+
+            await foreach (var token in stream)
+            {
+                await Response.WriteAsync($"data: {JsonSerializer.Serialize(new { token })}\n\n", cancellationToken);
+                await Response.Body.FlushAsync(cancellationToken);
+            }
+
+            await Response.WriteAsync("data: [DONE]\n\n", cancellationToken);
+            await Response.Body.FlushAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // client disconnect — স্বাভাবিক, চুপচাপ শেষ
+        }
+        catch (Exception)
+        {
+            await Response.WriteAsync(
+                $"event: error\ndata: {JsonSerializer.Serialize(new { error = "Stream failed." })}\n\n",
+                cancellationToken);
+            await Response.Body.FlushAsync(cancellationToken);
+        }
     }
 }

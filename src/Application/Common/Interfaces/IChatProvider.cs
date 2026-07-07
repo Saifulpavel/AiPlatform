@@ -7,4 +7,7 @@ public interface IChatProvider
 {
     string Name { get; }
     Task<ChatResult> CompleteAsync(IReadOnlyList<ChatMessage> messages, CancellationToken cancellationToken);
+
+    // token-by-token stream (SSE-এর জন্য)।
+    IAsyncEnumerable<string> StreamAsync(IReadOnlyList<ChatMessage> messages, CancellationToken cancellationToken);
 }
