@@ -59,8 +59,9 @@ public static class DependencyInjection
         services.AddSingleton<IChatProviderResolver, Llm.ChatProviderResolver>();
         services.AddSingleton<IEmbeddingProvider, Llm.GeminiEmbeddingProvider>();
 
-        // RAG retrievers (keyword now; embedding/qdrant Phase 3b/3c এ যোগ হবে)
+        // RAG retrievers (keyword + embedding; qdrant Phase 3c এ যোগ হবে)
         services.AddSingleton<IRetriever, Rag.KeywordRetriever>();
+        services.AddSingleton<IRetriever, Rag.EmbeddingRetriever>();
         services.AddSingleton<IRetrieverResolver, Rag.RetrieverResolver>();
 
         return services;

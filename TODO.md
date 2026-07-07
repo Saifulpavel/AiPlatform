@@ -9,7 +9,7 @@
   - [x] 2d — chat + analyzer handler tests (17 tests total pass)
 - [ ] Phase 3 — RAG + Qdrant (branch `feature/phase-3-rag-qdrant`)
   - [x] 3a — keyword RAG (IRetriever + resolver, seed KB, grounded Bengali answer + sources)
-  - [ ] 3b — embedding RAG + chunking (uses IEmbeddingProvider)
+  - [x] 3b — embedding RAG + chunking (cosine similarity, semantic retrieval verified)
   - [ ] 3c — Qdrant vector store (IVectorStore abstraction) + upsert
   - [ ] 3d — document upload + background ingestion (chunk→embed→upsert)
   - [ ] 3e — citations (source chunks) + tests
