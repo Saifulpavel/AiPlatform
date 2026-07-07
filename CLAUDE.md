@@ -18,6 +18,7 @@
 - Generic reusable code ও app-specific/demo code আলাদা রাখো (boilerplate goal — PLAN §4)।
 - Interface Application-এ, implementation Infrastructure-এ (IChatProvider, IVectorStore…)।
 - নতুন external service DI: `Infrastructure/DependencyInjection.cs`।
+- **নতুন API endpoint বানালেই `src/Api/AiPlatform.http` update করো** — প্রতিটার জন্য valid + invalid payload + `# Expected:` comment (কী response ও কেন)। এটাই live test-kit + doc।
 
 ## Error handling — layered, no try/catch spam
 - Expected/business failure (user-not-found, bad-credentials) → **Result pattern**, throw করবে না।

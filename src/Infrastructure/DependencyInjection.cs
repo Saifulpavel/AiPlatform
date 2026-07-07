@@ -59,6 +59,19 @@ public static class DependencyInjection
         services.AddSingleton<IChatProviderResolver, Llm.ChatProviderResolver>();
         services.AddSingleton<IEmbeddingProvider, Llm.GeminiEmbeddingProvider>();
 
+        // RAG retrievers (keyword + embedding + qdrant)
+        services.Configure<Rag.QdrantSettings>(configuration.GetSection(Rag.QdrantSettings.SectionName));
+        services.AddSingleton<IVectorStore, Rag.QdrantVectorStore>();
+        services.AddSingleton<IRetriever, Rag.KeywordRetriever>();
+        services.AddSingleton<IRetriever, Rag.EmbeddingRetriever>();
+        services.AddSingleton<IRetriever, Rag.QdrantRetriever>();
+        services.AddSingleton<IRetrieverResolver, Rag.RetrieverResolver>();
+
+        // Document ingestion (upload → background chunk→embed→upsert)
+        services.AddScoped<IDocumentRepository, Persistence.DocumentRepository>();
+        services.AddSingleton<IIngestionQueue, Ingestion.InMemoryIngestionQueue>();
+        services.AddHostedService<Ingestion.IngestionBackgroundService>();
+
         return services;
     }
 }

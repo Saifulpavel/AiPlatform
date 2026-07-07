@@ -1,0 +1,256 @@
+### ============================================================
+### AiPlatform — API test kit  (valid + invalid payload সহ)
+### ============================================================
+### ব্যবহার: VS 2022 এ প্রতিটা "Send Request" এ ক্লিক / VS Code এ REST Client extension।
+### আগে "login" পাঠাও → বাকি auth'd request গুলো token AUTO নেয়।
+### প্রতিটা request এর নিচে "# Expected:" = কী response আশা করছি।
+### 💡 hack: বাংলা এখানে ঠিক কাজ করে (Swagger/VS UTF-8 পাঠায়) — PowerShell 5.1 এ বাংলা body ভাঙে,
+###          তাই CLI দিয়ে টেস্ট করলে UTF-8 byte পাঠাতে হয়। VS/Swagger দিয়ে করলে ঝামেলা নেই।
+
+@host = http://localhost:5076
+@api = {{host}}/api/v1
+
+### ============================================================
+### Health / smoke — সার্ভার চলছে কিনা
+### ============================================================
+
+### health
+GET {{host}}/health
+# Expected: 200, body "Healthy"
+
+### ping (versioned routing কাজ করছে?)
+GET {{api}}/ping
+# Expected: 200, { message: "pong", version: "v1", utc: ... }
+
+
+### ============================================================
+### Auth — register / login / me / refresh / forgot / reset / logout
+### ============================================================
+
+### register — VALID
+POST {{api}}/auth/register
+Content-Type: application/json
+
+{ "email": "demo@aiplatform.com", "password": "Passw0rd!23", "fullName": "Demo User" }
+### Expected: 201, { userId: "..." }   (দ্বিতীয়বার দিলে 400 — email already taken)
+
+### register — INVALID (বাজে email + দুর্বল password)
+POST {{api}}/auth/register
+Content-Type: application/json
+
+{ "email": "not-an-email", "password": "123", "fullName": "" }
+### Expected: 400 ProblemDetails, errors: Email/Password/FullName (FluentValidation)
+
+### login — VALID  (এটা আগে চালাও; token এখান থেকে সব জায়গায় যায়)
+# @name login
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{ "email": "demo@aiplatform.com", "password": "Passw0rd!23" }
+### Expected: 200, { accessToken, expiresAtUtc } + Set-Cookie: refreshToken (httpOnly)
+
+### login — INVALID (ভুল password)
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{ "email": "demo@aiplatform.com", "password": "WrongPass!9" }
+### Expected: 401 generic — "user নেই" আর "password ভুল" আলাদা করা যায় না (enumeration রোধ)
+
+### me — VALID (token সহ)
+GET {{api}}/auth/me
+Authorization: Bearer {{login.response.body.$.accessToken}}
+# Expected: 200, { id, email, fullName, roles: ["User"] }
+
+### me — INVALID (token ছাড়া)
+GET {{api}}/auth/me
+# Expected: 401
+
+### refresh (cookie থেকে rotate — login এর পর কুকি auto)
+POST {{api}}/auth/refresh
+# Expected: 200 নতুন accessToken + rotated refresh cookie।
+# 💡 hack: একই পুরনো refresh দুবার use করলে reuse-detection → পুরো session revoke (401)।
+
+### forgot-password
+POST {{api}}/auth/forgot-password
+Content-Type: application/json
+
+{ "email": "demo@aiplatform.com" }
+### Expected: সবসময় 200 generic ("if the email exists...") — email আছে কিনা reveal করে না।
+### reset token dev-এ সার্ভার console/log এ দেখাবে (LoggingEmailSender)।
+
+### reset-password — INVALID (ভুল token)
+POST {{api}}/auth/reset-password
+Content-Type: application/json
+
+{ "email": "demo@aiplatform.com", "token": "WRONG_TOKEN", "newPassword": "NewPassw0rd!9" }
+# Expected: 400 — "Invalid password reset request." (সঠিক token log থেকে নাও)
+
+### logout
+POST {{api}}/auth/logout
+# Expected: 204, refresh cookie clear + family revoke
+
+
+### ============================================================
+### Chat — multi-provider  (provider: gemini | groq | mistral working)
+### ============================================================
+
+### chat — VALID
+POST {{api}}/chat
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "২ + ২ = কত? এক লাইনে বলো।", "provider": "groq" }
+### Expected: 200, { answer, provider, model }
+
+### chat — INVALID (খালি message)
+POST {{api}}/chat
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "", "provider": "groq" }
+### Expected: 400 validation (Message required)
+
+### chat — INVALID (অজানা provider)
+POST {{api}}/chat
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "hi", "provider": "does-not-exist" }
+### Expected: 400 — "No configured LLM provider available for 'does-not-exist'."
+
+### chat streaming (SSE — token আসামাত্র)
+POST {{api}}/chat/stream
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "১ থেকে ৫ পর্যন্ত গোনো, প্রতি লাইনে একটি সংখ্যা।", "provider": "gemini" }
+### Expected: text/event-stream, একাধিক "data: {token}" তারপর "data: [DONE]"
+
+
+### ============================================================
+### Analyzer — customer message → typed JSON
+### ============================================================
+
+### analyze — VALID
+POST {{api}}/analyze
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "text": "আমার অর্ডার ৫ দিন হলো আসেনি, আমি খুবই বিরক্ত। টাকা ফেরত চাই!", "provider": "groq" }
+### Expected: 200, { sentiment: "negative", category, priority: "high", summary (বাংলায়) }
+
+### analyze — INVALID (খালি text)
+POST {{api}}/analyze
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "text": "", "provider": "groq" }
+### Expected: 400 validation
+
+
+### ============================================================
+### Documents — upload → background ingest (chunk→embed→Qdrant) → status
+### upload করা doc method=qdrant RAG-এ auto চলে আসে।
+### ============================================================
+
+### upload — VALID (.txt/.md)
+# @name upload
+POST {{api}}/documents
+Authorization: Bearer {{login.response.body.$.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="faq.txt"
+Content-Type: text/plain
+
+প্রিমিয়াম গ্রাহকরা তাৎক্ষণিক রিফান্ড পান। রিফান্ড অনুরোধে অর্ডার নম্বর দিতে হবে।
+------Boundary--
+### Expected: 202, { documentId, status: "Pending" }
+
+### upload — INVALID (unsupported ext বা খালি file)
+POST {{api}}/documents
+Authorization: Bearer {{login.response.body.$.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="photo.png"
+Content-Type: image/png
+
+fake
+------Boundary--
+### Expected: 400 — "Only .txt and .md files are supported."
+
+### status (upload এর documentId auto)
+GET {{api}}/documents/{{upload.response.body.$.documentId}}
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 200, status Pending→Processing→Completed, processedChunks/totalChunks progress।
+### Completed হলে method=qdrant দিয়ে এই doc-এর প্রশ্ন করলে উত্তর আসবে।
+
+
+### ============================================================
+### RAG — keyword বনাম embedding পার্থক্য বোঝার জন্য সাজানো
+### ------------------------------------------------------------
+### KB-তে আছে হুবহু শব্দ: "পেমেন্ট", "bKash" (ল্যাটিন), "রিটার্ন", "ডেলিভারি" ...
+### keyword  = শুধু অক্ষর-মিল (Contains) — সমার্থক বোঝে না।
+### embedding = অর্থ বোঝে — ভিন্ন শব্দ দিলেও মেলে।
+### ============================================================
+
+### (1) keyword — প্রশ্নে KB-র হুবহু শব্দ "পেমেন্ট"
+POST {{api}}/rag
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "question": "পেমেন্ট কীভাবে করবো?", "method": "keyword", "provider": "groq" }
+### Expected: 200 ✅ payment doc মেলে ("পেমেন্ট" শব্দটা KB-তে আছে) → bKash/Nagad/কার্ড উত্তর।
+
+### (2) keyword — একই মানে, কিন্তু সমার্থক শব্দ "বিকাশ" (KB-তে বাংলা "বিকাশ" নেই, ল্যাটিন "bKash" আছে)
+POST {{api}}/rag
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "question": "আমি কি বিকাশে টাকা দিতে পারবো?", "method": "keyword", "provider": "groq" }
+### Expected: ❌ keyword দুর্বল — "বিকাশ" KB শব্দের সাথে মেলে না; "টাকা" ভুল করে ডেলিভারি doc-এ মেলে।
+#           তাই ভুল/অপ্রাসঙ্গিক source বা "তথ্য নেই"। এখানেই keyword-এর সীমা দেখা যায়।
+
+### (3) embedding — হুবহু একই প্রশ্ন (2-এর মতো), কিন্তু অর্থ বোঝে
+POST {{api}}/rag
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "question": "আমি কি বিকাশে টাকা দিতে পারবো?", "method": "embedding", "provider": "groq" }
+### Expected: 200 ✅ payment doc মেলে (cosine ~0.7) → "হ্যাঁ ... bKash গ্রহণ করি"।
+###           💡 এটাই মূল শিক্ষা: শব্দ না মিললেও embedding অর্থে মেলায় (2 fail, 3 pass)।
+
+### (4) embedding — রিটার্ন-এর বদলে সমার্থক "ফেরত/বদলানো"
+POST {{api}}/rag
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "question": "কেনা জিনিস বদলে বা ফেরত দেওয়া যায়?", "method": "embedding", "provider": "groq" }
+### Expected: 200 ✅ রিটার্ন/এক্সচেঞ্জ নীতি মেলে (KB শব্দ "রিটার্ন" হলেও অর্থে "ফেরত" ধরে)।
+
+### (4b) qdrant — embedding-এর মতোই semantic, কিন্তু ভেক্টর Qdrant DB-তে (docker) থাকে
+POST {{api}}/rag
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "question": "আমি কি বিকাশে টাকা দিতে পারবো?", "method": "qdrant", "provider": "groq" }
+### Expected: 200 ✅ payment doc (score = Qdrant cosine)। embedding-এর সাথে পার্থক্য:
+#           এখানে খোঁজা হয় Qdrant vector DB-তে (scalable, persistent), in-memory cosine নয়।
+#           💡 Qdrant container চালু থাকতে হবে: docker compose up -d
+
+### (5) off-topic — grounding test (দুই method-এই "তথ্য নেই" হওয়া উচিত)
+POST {{api}}/rag
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "question": "তোমাদের CEO কে?", "method": "embedding", "provider": "groq" }
+### Expected: 200, "তথ্য নেই" জাতীয় — KB-তে নেই বলে hallucinate করবে না (grounding)।
+
+### (6) INVALID — অজানা method
+POST {{api}}/rag
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "question": "hi", "method": "magic", "provider": "groq" }
+### Expected: 400 — "Unknown retrieval method 'magic'."
