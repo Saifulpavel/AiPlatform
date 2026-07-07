@@ -10,7 +10,7 @@
 - [ ] Phase 3 — RAG + Qdrant (branch `feature/phase-3-rag-qdrant`)
   - [x] 3a — keyword RAG (IRetriever + resolver, seed KB, grounded Bengali answer + sources)
   - [x] 3b — embedding RAG + chunking (cosine similarity, semantic retrieval verified)
-  - [ ] 3c — Qdrant vector store (IVectorStore abstraction) + upsert
+  - [x] 3c — Qdrant vector store (IVectorStore + QdrantRetriever, docker service); container reachable, end-to-end pending run
   - [ ] 3d — document upload + background ingestion (chunk→embed→upsert)
   - [ ] 3e — citations (source chunks) + tests
 - [ ] Phase 4 — Frontend core (premium auth, silent refresh, chat/RAG UI)

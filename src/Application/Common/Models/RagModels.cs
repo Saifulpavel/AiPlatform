@@ -5,3 +5,6 @@ public record RetrievedChunk(string Text, double? Score);
 
 // RAG উত্তর + কোন chunk থেকে (source/citation)।
 public record RagResponse(string Answer, IReadOnlyList<RetrievedChunk> Sources);
+
+// vector store-এ এক point (id + vector + মূল text payload)।
+public record VectorPoint(int Id, float[] Vector, string Text);
