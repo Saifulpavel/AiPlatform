@@ -2,6 +2,8 @@ using System.Text;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using AiPlatform.Api;
@@ -9,6 +11,7 @@ using AiPlatform.Api.Common;
 using AiPlatform.Application;
 using AiPlatform.Infrastructure;
 using AiPlatform.Infrastructure.Auth;
+using AiPlatform.Infrastructure.Persistence;
 
 // --- Bootstrap logger: startup crash-ও যেন log হয় ---
 Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
@@ -91,6 +94,23 @@ try
 
     var app = builder.Build();
 
+    // nginx LB-এর পেছনে আসল client IP/scheme (rate-limit ঠিক কাজ করতে)
+    // ponytail: নিজের compose network-এ সব proxy trust; public edge হলে KnownProxies সীমিত করো
+    var forwardedHeaders = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    };
+    forwardedHeaders.KnownNetworks.Clear();
+    forwardedHeaders.KnownProxies.Clear();
+    app.UseForwardedHeaders(forwardedHeaders);
+
+    // কোন replica সাড়া দিল (LB verify করতে সহজ)
+    app.Use(async (context, next) =>
+    {
+        context.Response.Headers["X-Instance"] = Environment.MachineName;
+        await next();
+    });
+
     app.UseSerilogRequestLogging();     // প্রতি request এক লাইনে log (method, path, status, ms)
     app.UseExceptionHandler();          // unhandled → ProblemDetails
 
@@ -116,9 +136,14 @@ try
     app.MapControllers();
     app.MapHealthChecks("/health");
 
-    // base role (User, Admin) নিশ্চিত করো
+    // startup-এ migration apply + base role seed (fresh container/CI-তে DB নিজে তৈরি হয়)
+    // ponytail: auto-migrate boilerplate/demo-র সুবিধা; কড়া prod-এ controlled migration ভালো
     using (var scope = app.Services.CreateScope())
-        await AiPlatform.Infrastructure.Persistence.IdentitySeeder.SeedRolesAsync(scope.ServiceProvider);
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.MigrateAsync();
+        await IdentitySeeder.SeedRolesAsync(scope.ServiceProvider);
+    }
 
     app.Run();
 }

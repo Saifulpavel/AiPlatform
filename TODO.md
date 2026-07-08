@@ -21,7 +21,7 @@
   - [x] 4e — RAG panel (method/provider switch, answer + citations/sources) + document upload/status UI; RAG verified
 - [~] Phase 5 — Docker + load balancing (branch `feature/phase-5-docker-lb`)
   - [ ] 5a — API Dockerfile (multi-stage) + image build
-  - [ ] 5b — nginx LB + full compose (api×2 + nginx + sqlserver/redis/qdrant) + LB verify
+  - [x] 5b — nginx LB + full compose (api×2 + nginx + backing services); round-robin + auth-across-replicas verified
   - [ ] 5c — health checks + graceful shutdown + compose.override (local) + docs
 - [ ] Phase 6 — AI-specific (semantic cache, routing, observability, guardrails, rerank, memory, evals)
 - [ ] Phase 7 — Infra/product advanced (multi-tenancy, queue, dashboards, MCP)
