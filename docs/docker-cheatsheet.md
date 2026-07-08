@@ -45,12 +45,23 @@ Analogy: container = shipping container. ভেতরে কী আছে জা
 
 ### দৈনন্দিন
 ```bash
-docker compose up -d        # সব service চালু করো (-d = background/detached)
-docker compose ps           # কোনটা চলছে দেখো
-docker compose stop         # থামাও (data থাকবে, container থাকবে)
-docker compose start        # আবার চালু করো
-docker compose down         # থামাও + container মুছে ফেলো (volume/data থাকবে)
-docker compose logs -f redis   # redis-এর live log (-f = follow, Ctrl+C বেরোতে)
+docker compose up -d              # backing services (sqlserver+redis+qdrant) — local dev
+docker compose --profile full up -d --build   # full stack + nginx LB (api×2) → http://localhost:8080
+docker compose ps                 # কোনটা চলছে দেখো
+docker compose stop               # থামাও (data থাকবে, container থাকবে)
+docker compose down               # থামাও + container মুছে ফেলো (volume/data থাকবে)
+docker compose down -v            # + volume/data মুছে ফেলো (fresh DB)
+docker compose logs -f api1       # এক service-এর live log
+```
+
+### দুই মোড (profiles)
+- **local dev:** `docker compose up -d` → শুধু DB/Redis/Qdrant container-এ; **API `dotnet run --project backend/src/Api`, frontend `npm run dev`** (host থেকে, দ্রুত iterate)।
+- **full stack:** `docker compose --profile full up -d --build` → API-ও container-এ, nginx LB পেছনে দুই replica। entry `http://localhost:8080`। এটাই production-এর কাছাকাছি।
+
+### full stack verify (LB কাজ করছে?)
+```bash
+# বারবার hit করলে X-Instance header api1/api2 এর মধ্যে বদলাবে (round-robin)
+curl -i http://localhost:8080/api/v1/ping
 ```
 
 ### একটু গভীরে

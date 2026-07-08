@@ -1,6 +1,9 @@
-# Full stack: sqlserver + redis + qdrant + api×2 (replica) + nginx LB।
-# চালাও: docker compose up -d --build   →  LB entry: http://localhost:8080
-# শুধু backing services চাই (local dev)? docker-compose.override.yml দেখো।
+# দুই মোড (Docker Compose profiles দিয়ে):
+#   local dev (backing only):  docker compose up -d
+#     → sqlserver + redis + qdrant শুধু; API/frontend VS/dotnet/npm থেকে চালাও।
+#   full stack (LB সহ):        docker compose --profile full up -d --build
+#     → + api1/api2 + nginx LB। entry: http://localhost:8080
+# থামাতে: docker compose down  (volume/DB থাকে; -v দিলে data-ও মুছবে)।
 
 # দুই API replica-র shared config (DRY — YAML anchor)
 x-api-common: &api-common
@@ -62,13 +65,17 @@ services:
       - qdrant-data:/qdrant/storage
 
   # stateless API — দুই replica (state Redis/SQL-এ, তাই যেকোনো replica যেকোনো request নিতে পারে)
+  # profile "full" — default `up` এ ওঠে না (local dev-এ API VS/dotnet থেকে চালাও)।
+  # full stack: docker compose --profile full up -d --build
   api1:
     <<: *api-common
     container_name: aiplatform-api1
+    profiles: ["full"]
 
   api2:
     <<: *api-common
     container_name: aiplatform-api2
+    profiles: ["full"]
 
   nginx:
     image: nginx:alpine
@@ -80,6 +87,7 @@ services:
     depends_on:
       - api1
       - api2
+    profiles: ["full"]
     restart: unless-stopped
 
 volumes:

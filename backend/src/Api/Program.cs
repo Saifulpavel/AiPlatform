@@ -26,6 +26,9 @@ try
         .ReadFrom.Services(services)
         .Enrich.FromLogContext());
 
+    // graceful shutdown — SIGTERM এ in-flight request শেষ করার সময় দেয় (container stop/replica rollout)
+    builder.Host.ConfigureHostOptions(options => options.ShutdownTimeout = TimeSpan.FromSeconds(30));
+
     // Layer wiring
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
