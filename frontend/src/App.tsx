@@ -6,6 +6,8 @@ import { AppShell } from '@/components/AppShell'
 import AuthPage from '@/features/auth/AuthPage'
 import { HomePage } from '@/features/home/HomePage'
 import { ChatPage } from '@/features/chat/ChatPage'
+import { RagPage } from '@/features/rag/RagPage'
+import { DocumentsPage } from '@/features/documents/DocumentsPage'
 
 export default function App() {
   return (
@@ -22,6 +24,8 @@ export default function App() {
           <Route element={<AppShell />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/chat" element={<ChatPage />} />
+            <Route path="/rag" element={<RagPage />} />
+            <Route path="/documents" element={<DocumentsPage />} />
           </Route>
         </Route>
 
