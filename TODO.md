@@ -19,7 +19,10 @@
   - [x] 4c — bootstrap silent-refresh, protected/public routes, app shell (me/logout), dark mode; verified end-to-end
   - [x] 4d — chat UI + SSE streaming (token-by-token) + provider switch; verified end-to-end
   - [x] 4e — RAG panel (method/provider switch, answer + citations/sources) + document upload/status UI; RAG verified
-- [ ] Phase 5 — Docker + load balancing (nginx, api×2, redis, qdrant, sqlserver)
+- [~] Phase 5 — Docker + load balancing (branch `feature/phase-5-docker-lb`)
+  - [ ] 5a — API Dockerfile (multi-stage) + image build
+  - [ ] 5b — nginx LB + full compose (api×2 + nginx + sqlserver/redis/qdrant) + LB verify
+  - [ ] 5c — health checks + graceful shutdown + compose.override (local) + docs
 - [ ] Phase 6 — AI-specific (semantic cache, routing, observability, guardrails, rerank, memory, evals)
 - [ ] Phase 7 — Infra/product advanced (multi-tenancy, queue, dashboards, MCP)
 - [ ] Phase 8 — Quality/DevEx (tests, CI/CD, OTel)
