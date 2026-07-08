@@ -15,7 +15,7 @@
   - [x] 3e — citations (source attribution + [n] in answer) + RAG handler tests (24 tests total)
 - [~] Phase 4 — Frontend core (branch `feature/phase-4-frontend`)
   - [x] 4a — repo → backend/ + frontend/; Vite+TS scaffold, Tailwind v4 + shadcn foundation, Redux Toolkit + RTK Query (re-auth baseQuery), auth slice, providers wired; build passes
-  - [ ] 4b — premium login/register (split-screen, rhf+zod, framer, sonner, dark mode)
+  - [x] 4b — premium login/register (split-screen brand panel, rhf+zod, show/hide, framer toggle, Google placeholder, sonner); renders verified
   - [ ] 4c — protected routes + app shell + auth RTK Query endpoints (register/login/me/logout)
   - [ ] 4d — chat UI (+ streaming) + provider switch
   - [ ] 4e — RAG panel (method switch, sources) + document upload/status UI
