@@ -13,6 +13,12 @@ export interface RegisterRequest {
   password: string
   fullName: string
 }
+export interface CurrentUser {
+  id: string
+  email: string
+  fullName: string
+  roles: string[]
+}
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -22,7 +28,13 @@ export const authApi = baseApi.injectEndpoints({
     register: builder.mutation<{ userId: string }, RegisterRequest>({
       query: (body) => ({ url: '/auth/register', method: 'POST', body }),
     }),
+    me: builder.query<CurrentUser, void>({
+      query: () => '/auth/me',
+    }),
+    logout: builder.mutation<void, void>({
+      query: () => ({ url: '/auth/logout', method: 'POST' }),
+    }),
   }),
 })
 
-export const { useLoginMutation, useRegisterMutation } = authApi
+export const { useLoginMutation, useRegisterMutation, useMeQuery, useLogoutMutation } = authApi

@@ -16,7 +16,7 @@
 - [~] Phase 4 — Frontend core (branch `feature/phase-4-frontend`)
   - [x] 4a — repo → backend/ + frontend/; Vite+TS scaffold, Tailwind v4 + shadcn foundation, Redux Toolkit + RTK Query (re-auth baseQuery), auth slice, providers wired; build passes
   - [x] 4b — premium login/register (split-screen brand panel, rhf+zod, show/hide, framer toggle, Google placeholder, sonner); renders verified
-  - [ ] 4c — protected routes + app shell + auth RTK Query endpoints (register/login/me/logout)
+  - [x] 4c — bootstrap silent-refresh, protected/public routes, app shell (me/logout), dark mode; verified end-to-end
   - [ ] 4d — chat UI (+ streaming) + provider switch
   - [ ] 4e — RAG panel (method switch, sources) + document upload/status UI
 - [ ] Phase 5 — Docker + load balancing (nginx, api×2, redis, qdrant, sqlserver)

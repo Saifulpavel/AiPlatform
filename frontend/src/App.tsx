@@ -1,22 +1,30 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { AppBootstrap } from '@/features/auth/AppBootstrap'
+import { ProtectedRoute } from '@/routes/ProtectedRoute'
+import { PublicRoute } from '@/routes/PublicRoute'
+import { AppShell } from '@/components/AppShell'
 import AuthPage from '@/features/auth/AuthPage'
-
-// placeholder — Phase 4c এ protected app shell আসবে।
-function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center text-foreground">
-      <p className="text-muted-foreground">লগইন সফল — app shell আসছে (Phase 4c)।</p>
-    </div>
-  )
-}
+import { HomePage } from '@/features/home/HomePage'
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<AuthPage initialMode="login" />} />
-      <Route path="/register" element={<AuthPage initialMode="register" />} />
-      <Route path="/" element={<Home />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+    <AppBootstrap>
+      <Routes>
+        {/* logged-in হলে এগুলো / তে redirect */}
+        <Route element={<PublicRoute />}>
+          <Route path="/login" element={<AuthPage initialMode="login" />} />
+          <Route path="/register" element={<AuthPage initialMode="register" />} />
+        </Route>
+
+        {/* logged-in না হলে /login এ redirect */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppShell />}>
+            <Route path="/" element={<HomePage />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AppBootstrap>
   )
 }
