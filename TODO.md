@@ -13,7 +13,12 @@
   - [x] 3c — Qdrant vector store (IVectorStore + QdrantRetriever, docker service); verified end-to-end
   - [x] 3d — document upload + background ingestion (Channel queue, hosted service, status/progress); verified
   - [x] 3e — citations (source attribution + [n] in answer) + RAG handler tests (24 tests total)
-- [ ] Phase 4 — Frontend core (premium auth, silent refresh, chat/RAG UI)
+- [x] **Phase 4 — Frontend core** (branch `feature/phase-4-frontend`)
+  - [x] 4a — repo → backend/ + frontend/; Vite+TS scaffold, Tailwind v4 + shadcn foundation, Redux Toolkit + RTK Query (re-auth baseQuery), auth slice, providers wired; build passes
+  - [x] 4b — premium login/register (split-screen brand panel, rhf+zod, show/hide, framer toggle, Google placeholder, sonner); renders verified
+  - [x] 4c — bootstrap silent-refresh, protected/public routes, app shell (me/logout), dark mode; verified end-to-end
+  - [x] 4d — chat UI + SSE streaming (token-by-token) + provider switch; verified end-to-end
+  - [x] 4e — RAG panel (method/provider switch, answer + citations/sources) + document upload/status UI; RAG verified
 - [ ] Phase 5 — Docker + load balancing (nginx, api×2, redis, qdrant, sqlserver)
 - [ ] Phase 6 — AI-specific (semantic cache, routing, observability, guardrails, rerank, memory, evals)
 - [ ] Phase 7 — Infra/product advanced (multi-tenancy, queue, dashboards, MCP)

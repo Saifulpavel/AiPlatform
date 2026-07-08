@@ -3,13 +3,20 @@
 ## Stack
 - Backend: .NET 10 Web API, Clean Architecture (Api → Application → Domain; Infrastructure → Application/Domain).
 - CQRS + MediatR, FluentValidation, Serilog, ProblemDetails, Swagger, API versioning (`/api/v{n}`).
-- Frontend (Phase 4+): React + TS + Vite + Tailwind + shadcn/ui.
+- Frontend (Phase 4+): React + TS + Vite, Tailwind + shadcn/ui, react-hook-form + zod, framer-motion, sonner. **State/data: Redux Toolkit + RTK Query** (server-state + client-state). Silent refresh via RTK Query custom baseQuery (re-auth wrapper); access token in memory (Redux slice), never localStorage.
 - Data: SQL Server + EF Core, Redis, Qdrant. Solution file is `AiPlatform.slnx` (not .sln).
 
+## Repo structure (from Phase 4)
+- `backend/` — .NET solution (`src/`, `tests/`, `AiPlatform.slnx`). Run: `dotnet run --project backend/src/Api`.
+- `frontend/` — React app, feature-based (`src/features/{auth,chat,rag,documents}`), mirrors backend feature organization.
+- Root: `docs/`, `docker-compose.yml`, `PLAN.md`, `TODO.md`, `CLAUDE.md`.
+
 ## Run
-- Build: `dotnet build AiPlatform.slnx`
-- API: `dotnet run --project src/Api` → http://localhost:5076 (swagger `/swagger`, health `/health`)
-- Test: `dotnet test`
+- Build: `dotnet build backend/AiPlatform.slnx`
+- API: `dotnet run --project backend/src/Api` → http://localhost:5076 (swagger `/swagger`, health `/health`)
+- Test: `dotnet test backend/AiPlatform.slnx`
+- Frontend: `cd frontend && npm run dev` → http://localhost:5173
+- EF migration: `dotnet ef ... --project backend/src/Infrastructure --startup-project backend/src/Api`
 
 ## Conventions
 - প্রতিটা capability = আলাদা, স্বাধীনভাবে-testable feature (`Application/Features/<Name>`)।
