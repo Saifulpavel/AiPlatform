@@ -5,6 +5,7 @@ import { PublicRoute } from '@/routes/PublicRoute'
 import { AppShell } from '@/components/AppShell'
 import AuthPage from '@/features/auth/AuthPage'
 import { HomePage } from '@/features/home/HomePage'
+import { ChatPage } from '@/features/chat/ChatPage'
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/chat" element={<ChatPage />} />
           </Route>
         </Route>
 
