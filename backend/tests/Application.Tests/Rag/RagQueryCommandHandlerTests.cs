@@ -11,8 +11,9 @@ public class RagQueryCommandHandlerTests
 {
     private readonly IRetrieverResolver _retrieverResolver = Substitute.For<IRetrieverResolver>();
     private readonly IChatProviderResolver _chatResolver = Substitute.For<IChatProviderResolver>();
+    private readonly ILlmUsageRecorder _usage = Substitute.For<ILlmUsageRecorder>();
 
-    private RagQueryCommandHandler CreateSut() => new(_retrieverResolver, _chatResolver);
+    private RagQueryCommandHandler CreateSut() => new(_retrieverResolver, _chatResolver, _usage);
 
     private static IRetriever RetrieverReturning(params RetrievedChunk[] chunks)
     {

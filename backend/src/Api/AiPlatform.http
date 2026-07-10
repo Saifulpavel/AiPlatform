@@ -149,6 +149,17 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 
 
 ### ============================================================
+### Usage — LLM observability (cost/token/latency summary)
+### ============================================================
+
+### usage summary (chat/rag call করার পর data আসবে)
+GET {{api}}/usage
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 200, { totalCostUsd, totalRequests, totalInputTokens, totalOutputTokens, byModel[] }
+### byModel = per provider+model: requests, tokens, costUsd (= pricing config × tokens)।
+
+
+### ============================================================
 ### Documents — upload → background ingest (chunk→embed→Qdrant) → status
 ### upload করা doc method=qdrant RAG-এ auto চলে আসে।
 ### ============================================================

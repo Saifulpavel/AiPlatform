@@ -16,7 +16,9 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("Default")));
+            options.UseSqlServer(
+                configuration.GetConnectionString("Default"),
+                sql => sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null)));
 
         services
             .AddIdentityCore<AppUser>(options =>
@@ -52,6 +54,12 @@ public static class DependencyInjection
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddSingleton<IRefreshTokenService, RefreshTokenService>();
         services.AddSingleton<IEmailSender, Email.LoggingEmailSender>();
+
+        // LLM observability — usage/cost record (non-blocking queue → background persist)
+        services.AddSingleton<Observability.UsageQueue>();
+        services.AddSingleton<ILlmUsageRecorder, Observability.UsageRecorder>();
+        services.AddHostedService<Observability.UsagePersistenceService>();
+        services.AddScoped<IUsageReader, Observability.UsageReader>();
 
         // LLM providers — config-driven (key user-secrets), HttpClient factory দিয়ে
         services.Configure<Llm.LlmSettings>(configuration.GetSection(Llm.LlmSettings.SectionName));

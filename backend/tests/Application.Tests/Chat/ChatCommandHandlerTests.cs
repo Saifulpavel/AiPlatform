@@ -10,6 +10,7 @@ namespace AiPlatform.Application.Tests.Chat;
 public class ChatCommandHandlerTests
 {
     private readonly IChatProviderResolver _resolver = Substitute.For<IChatProviderResolver>();
+    private readonly ILlmUsageRecorder _usage = Substitute.For<ILlmUsageRecorder>();
 
     [Fact]
     public async Task KnownProvider_ReturnsAnswer()
@@ -19,7 +20,7 @@ public class ChatCommandHandlerTests
             .Returns(new ChatResult("4", "gemini", "gemini-2.5-flash-lite"));
         _resolver.Resolve("gemini").Returns(provider);
 
-        var result = await new ChatCommandHandler(_resolver)
+        var result = await new ChatCommandHandler(_resolver, _usage)
             .Handle(new ChatCommand("2+2?", "gemini"), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -32,7 +33,7 @@ public class ChatCommandHandlerTests
     {
         _resolver.Resolve(Arg.Any<string?>()).Returns((IChatProvider?)null);
 
-        var result = await new ChatCommandHandler(_resolver)
+        var result = await new ChatCommandHandler(_resolver, _usage)
             .Handle(new ChatCommand("hi", "does-not-exist"), CancellationToken.None);
 
         Assert.True(result.IsFailure);

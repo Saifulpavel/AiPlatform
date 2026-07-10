@@ -23,7 +23,14 @@
   - [x] 5a — API Dockerfile (multi-stage) + image build
   - [x] 5b — nginx LB + full compose (api×2 + nginx + backing services); round-robin + auth-across-replicas verified
   - [x] 5c — graceful shutdown + compose profiles (dev=backing / full=LB) + docs
-- [ ] Phase 6 — AI-specific (semantic cache, routing, observability, guardrails, rerank, memory, evals)
+- [~] Phase 6 — AI-specific (branch `feature/phase-6-ai-specific`)
+  - [x] 6a — LLM observability: per-call provider/model/tokens/cost/latency → queue→DB, /usage summary endpoint; EF retry-on-failure. Verified.
+  - [ ] 6b — semantic cache (Redis, embedding similarity)
+  - [ ] 6c — model routing (complexity → cheap/strong)
+  - [ ] 6d — guardrails (prompt-injection + PII redaction)
+  - [ ] 6e — hybrid search + reranking
+  - [ ] 6f — conversation memory (history + summarize)
+  - [ ] 6g — evals harness + report
 - [ ] Phase 7 — Infra/product advanced (multi-tenancy, queue, dashboards, MCP)
 - [ ] Phase 8 — Quality/DevEx (tests, CI/CD, OTel)
 - [ ] Phase 9 — Boilerplate packaging (template, conventions, strip demo)
