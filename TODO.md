@@ -25,7 +25,7 @@
   - [x] 5c — graceful shutdown + compose profiles (dev=backing / full=LB) + docs
 - [~] Phase 6 — AI-specific (branch `feature/phase-6-ai-specific`)
   - [x] 6a — LLM observability: per-call provider/model/tokens/cost/latency → queue→DB, /usage summary endpoint; EF retry-on-failure. Verified.
-  - [ ] 6b — semantic cache (Redis, embedding similarity)
+  - [x] 6b — semantic cache (Qdrant, embedding similarity ≥ threshold → skip LLM); feature-toggle, conservative threshold. Verified.
   - [ ] 6c — model routing (complexity → cheap/strong)
   - [ ] 6d — guardrails (prompt-injection + PII redaction)
   - [ ] 6e — hybrid search + reranking

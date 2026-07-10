@@ -61,6 +61,10 @@ public static class DependencyInjection
         services.AddHostedService<Observability.UsagePersistenceService>();
         services.AddScoped<IUsageReader, Observability.UsageReader>();
 
+        // Semantic cache (Qdrant) — near-duplicate প্রশ্নে LLM call এড়ায়
+        services.Configure<Cache.SemanticCacheSettings>(configuration.GetSection(Cache.SemanticCacheSettings.SectionName));
+        services.AddSingleton<ISemanticCache, Cache.QdrantSemanticCache>();
+
         // LLM providers — config-driven (key user-secrets), HttpClient factory দিয়ে
         services.Configure<Llm.LlmSettings>(configuration.GetSection(Llm.LlmSettings.SectionName));
         services.AddHttpClient("llm");

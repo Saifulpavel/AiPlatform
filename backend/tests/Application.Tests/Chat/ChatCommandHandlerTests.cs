@@ -11,6 +11,8 @@ public class ChatCommandHandlerTests
 {
     private readonly IChatProviderResolver _resolver = Substitute.For<IChatProviderResolver>();
     private readonly ILlmUsageRecorder _usage = Substitute.For<ILlmUsageRecorder>();
+    private readonly IEmbeddingProvider _embeddings = Substitute.For<IEmbeddingProvider>();
+    private readonly ISemanticCache _cache = Substitute.For<ISemanticCache>(); // IsEnabled=false default → cache path skip
 
     [Fact]
     public async Task KnownProvider_ReturnsAnswer()
@@ -20,7 +22,7 @@ public class ChatCommandHandlerTests
             .Returns(new ChatResult("4", "gemini", "gemini-2.5-flash-lite"));
         _resolver.Resolve("gemini").Returns(provider);
 
-        var result = await new ChatCommandHandler(_resolver, _usage)
+        var result = await new ChatCommandHandler(_resolver, _usage, _embeddings, _cache)
             .Handle(new ChatCommand("2+2?", "gemini"), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -33,7 +35,7 @@ public class ChatCommandHandlerTests
     {
         _resolver.Resolve(Arg.Any<string?>()).Returns((IChatProvider?)null);
 
-        var result = await new ChatCommandHandler(_resolver, _usage)
+        var result = await new ChatCommandHandler(_resolver, _usage, _embeddings, _cache)
             .Handle(new ChatCommand("hi", "does-not-exist"), CancellationToken.None);
 
         Assert.True(result.IsFailure);
