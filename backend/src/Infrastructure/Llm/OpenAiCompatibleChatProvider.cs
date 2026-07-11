@@ -36,7 +36,17 @@ public class OpenAiCompatibleChatProvider(IHttpClientFactory httpClientFactory, 
             .GetProperty("choices")[0].GetProperty("message")
             .GetProperty("content").GetString() ?? string.Empty;
 
-        return new ChatResult(text, Name, config.Model);
+        var (inputTokens, outputTokens) = ReadUsage(doc.RootElement);
+        return new ChatResult(text, Name, config.Model, inputTokens, outputTokens);
+    }
+
+    private static (int input, int output) ReadUsage(JsonElement root)
+    {
+        if (!root.TryGetProperty("usage", out var usage))
+            return (0, 0);
+        var input = usage.TryGetProperty("prompt_tokens", out var p) ? p.GetInt32() : 0;
+        var output = usage.TryGetProperty("completion_tokens", out var c) ? c.GetInt32() : 0;
+        return (input, output);
     }
 
     public async Task<string> CompleteJsonAsync(IReadOnlyList<ChatMessage> messages, CancellationToken cancellationToken)

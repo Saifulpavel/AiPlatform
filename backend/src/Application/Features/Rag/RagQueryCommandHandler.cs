@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AiPlatform.Application.Common.Interfaces;
 using AiPlatform.Application.Common.Models;
 using AiPlatform.Application.Common.Results;
@@ -8,7 +9,8 @@ namespace AiPlatform.Application.Features.Rag;
 // method-agnostic: retriever resolver method দিয়ে বাছে, তাই keyword/embedding/qdrant একই handler-এ চলে।
 public class RagQueryCommandHandler(
     IRetrieverResolver retrieverResolver,
-    IChatProviderResolver chatResolver)
+    IChatProviderResolver chatResolver,
+    ILlmUsageRecorder usageRecorder)
     : IRequestHandler<RagQueryCommand, Result<RagResponse>>
 {
     private const int TopN = 3;
@@ -44,8 +46,13 @@ public class RagQueryCommandHandler(
         var context = string.Join("\n", chunks.Select((c, i) => $"[{i + 1}] {c.Text}"));
         var userMessage = $"তথ্য:\n{context}\n\nপ্রশ্ন: {request.Question}";
 
+        var stopwatch = Stopwatch.StartNew();
         var result = await chat.CompleteAsync(
             [new ChatMessage("system", SystemPrompt), new ChatMessage("user", userMessage)], cancellationToken);
+        stopwatch.Stop();
+
+        usageRecorder.Record(new LlmUsageRecord(
+            "rag", result.Provider, result.Model, result.InputTokens, result.OutputTokens, stopwatch.ElapsedMilliseconds));
 
         return new RagResponse(result.Content, chunks);
     }

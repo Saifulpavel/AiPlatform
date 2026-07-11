@@ -45,7 +45,17 @@ public class GeminiChatProvider(IHttpClientFactory httpClientFactory, string nam
             .GetProperty("candidates")[0].GetProperty("content")
             .GetProperty("parts")[0].GetProperty("text").GetString() ?? string.Empty;
 
-        return new ChatResult(text, Name, config.Model);
+        var (inputTokens, outputTokens) = ReadUsage(doc.RootElement);
+        return new ChatResult(text, Name, config.Model, inputTokens, outputTokens);
+    }
+
+    private static (int input, int output) ReadUsage(JsonElement root)
+    {
+        if (!root.TryGetProperty("usageMetadata", out var usage))
+            return (0, 0);
+        var input = usage.TryGetProperty("promptTokenCount", out var p) ? p.GetInt32() : 0;
+        var output = usage.TryGetProperty("candidatesTokenCount", out var c) ? c.GetInt32() : 0;
+        return (input, output);
     }
 
     public async Task<string> CompleteJsonAsync(IReadOnlyList<ChatMessage> messages, CancellationToken cancellationToken)

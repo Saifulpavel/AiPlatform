@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json;
 using Asp.Versioning;
 using AiPlatform.Api.Common;
@@ -17,7 +18,9 @@ public class ChatController(IMediator mediator) : ApiControllerBase
     [HttpPost]
     public async Task<IActionResult> Chat(ChatRequest request, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new ChatCommand(request.Message, request.Provider), cancellationToken);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var result = await mediator.Send(
+            new ChatCommand(request.Message, request.Provider, request.ConversationId, userId), cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : ToProblem(result.Error);
     }
 

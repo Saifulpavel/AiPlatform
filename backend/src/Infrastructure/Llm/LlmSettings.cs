@@ -8,6 +8,15 @@ public class LlmSettings
     public string DefaultProvider { get; init; } = "gemini";
     public Dictionary<string, ProviderConfig> Providers { get; init; } = new();
     public EmbeddingConfig Embedding { get; init; } = new();
+
+    // model → দাম (USD/মিলিয়ন token)। unknown model = 0 cost।
+    public Dictionary<string, ModelPricing> Pricing { get; init; } = new();
+}
+
+public class ModelPricing
+{
+    public decimal InputPerMillion { get; init; }
+    public decimal OutputPerMillion { get; init; }
 }
 
 public class ProviderConfig

@@ -9,6 +9,7 @@ namespace AiPlatform.Infrastructure.Persistence;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<AppUser>(options)
 {
     public DbSet<Document> Documents => Set<Document>();
+    public DbSet<LlmUsage> LlmUsages => Set<LlmUsage>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -19,6 +20,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             entity.Property(d => d.FileName).HasMaxLength(260).IsRequired();
             entity.Property(d => d.ErrorMessage).HasMaxLength(2000);
             // Content nvarchar(max) — length সীমা না দিয়ে
+        });
+
+        builder.Entity<LlmUsage>(entity =>
+        {
+            entity.Property(u => u.Feature).HasMaxLength(50);
+            entity.Property(u => u.Provider).HasMaxLength(50);
+            entity.Property(u => u.Model).HasMaxLength(100);
+            entity.Property(u => u.EstimatedCostUsd).HasPrecision(18, 8);
+            entity.HasIndex(u => u.CreatedAtUtc);
         });
     }
 }

@@ -16,7 +16,9 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("Default")));
+            options.UseSqlServer(
+                configuration.GetConnectionString("Default"),
+                sql => sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null)));
 
         services
             .AddIdentityCore<AppUser>(options =>
@@ -53,18 +55,48 @@ public static class DependencyInjection
         services.AddSingleton<IRefreshTokenService, RefreshTokenService>();
         services.AddSingleton<IEmailSender, Email.LoggingEmailSender>();
 
+        // LLM observability — usage/cost record (non-blocking queue → background persist)
+        services.AddSingleton<Observability.UsageQueue>();
+        services.AddSingleton<ILlmUsageRecorder, Observability.UsageRecorder>();
+        services.AddHostedService<Observability.UsagePersistenceService>();
+        services.AddScoped<IUsageReader, Observability.UsageReader>();
+
+        // Semantic cache (Qdrant) — near-duplicate প্রশ্নে LLM call এড়ায়
+        services.Configure<Cache.SemanticCacheSettings>(configuration.GetSection(Cache.SemanticCacheSettings.SectionName));
+        services.AddSingleton<ISemanticCache, Cache.QdrantSemanticCache>();
+
         // LLM providers — config-driven (key user-secrets), HttpClient factory দিয়ে
         services.Configure<Llm.LlmSettings>(configuration.GetSection(Llm.LlmSettings.SectionName));
         services.AddHttpClient("llm");
         services.AddSingleton<IChatProviderResolver, Llm.ChatProviderResolver>();
         services.AddSingleton<IEmbeddingProvider, Llm.GeminiEmbeddingProvider>();
 
+        // Model routing — auto mode-এ complexity দেখে cheap/strong provider select
+        services.Configure<Llm.RoutingSettings>(configuration.GetSection(Llm.RoutingSettings.SectionName));
+        services.AddSingleton<IModelRouter, Llm.HeuristicModelRouter>();
+
+        // Guardrails — LLM input-এ prompt-injection block + PII redact (trust boundary)
+        services.Configure<Guardrails.GuardrailsSettings>(configuration.GetSection(Guardrails.GuardrailsSettings.SectionName));
+        services.AddSingleton<IPromptGuard, Guardrails.RegexPromptGuard>();
+
+        // Conversation memory — Redis-এ history + long হলে summarize (multi-turn chat)
+        services.Configure<Conversation.ConversationSettings>(configuration.GetSection(Conversation.ConversationSettings.SectionName));
+        services.AddSingleton<IConversationStore, Conversation.RedisConversationStore>();
+
+        // Evals — RAG grounding eval dataset (app-specific/demo seed)
+        services.AddSingleton<IEvalDataset, Evals.RagEvalDataset>();
+
         // RAG retrievers (keyword + embedding + qdrant)
         services.Configure<Rag.QdrantSettings>(configuration.GetSection(Rag.QdrantSettings.SectionName));
         services.AddSingleton<IVectorStore, Rag.QdrantVectorStore>();
-        services.AddSingleton<IRetriever, Rag.KeywordRetriever>();
-        services.AddSingleton<IRetriever, Rag.EmbeddingRetriever>();
+        // keyword + embedding concrete-ও রাখি → hybrid এদের সরাসরি inject করে (IRetriever collection-এ
+        // hybrid নিজেও থাকে, তাই IEnumerable<IRetriever> নিলে circular; concrete inject সেটা এড়ায়)।
+        services.AddSingleton<Rag.KeywordRetriever>();
+        services.AddSingleton<Rag.EmbeddingRetriever>();
+        services.AddSingleton<IRetriever>(sp => sp.GetRequiredService<Rag.KeywordRetriever>());
+        services.AddSingleton<IRetriever>(sp => sp.GetRequiredService<Rag.EmbeddingRetriever>());
         services.AddSingleton<IRetriever, Rag.QdrantRetriever>();
+        services.AddSingleton<IRetriever, Rag.HybridRetriever>();
         services.AddSingleton<IRetrieverResolver, Rag.RetrieverResolver>();
 
         // Document ingestion (upload → background chunk→embed→upsert)

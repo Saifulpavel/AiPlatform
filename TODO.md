@@ -23,7 +23,14 @@
   - [x] 5a — API Dockerfile (multi-stage) + image build
   - [x] 5b — nginx LB + full compose (api×2 + nginx + backing services); round-robin + auth-across-replicas verified
   - [x] 5c — graceful shutdown + compose profiles (dev=backing / full=LB) + docs
-- [ ] Phase 6 — AI-specific (semantic cache, routing, observability, guardrails, rerank, memory, evals)
+- [x] Phase 6 — AI-specific (branch `feature/phase-6-ai-specific`)
+  - [x] 6a — LLM observability: per-call provider/model/tokens/cost/latency → queue→DB, /usage summary endpoint; EF retry-on-failure. Verified.
+  - [x] 6b — semantic cache (Qdrant, embedding similarity ≥ threshold → skip LLM); feature-toggle, conservative threshold. Verified.
+  - [x] 6c — model routing: auto mode-এ complexity (length/keyword) দেখে cheap(gemini)/strong(groq) auto-select; config-driven, feature-toggle। Verified.
+  - [x] 6d — guardrails: IPromptGuard (regex) → chat + stream input-এ prompt-injection block + PII (email/phone/cc) redact; config-driven pattern, feature-toggle। 31 tests pass. Verified build+test.
+  - [x] 6e — hybrid search: HybridRetriever (method="hybrid") keyword+embedding চালিয়ে Reciprocal Rank Fusion দিয়ে merge+rerank; concrete-inject করে DI cycle এড়ানো; pure Fuse() 3 test। 34 tests pass. Verified build+test.
+  - [x] 6f — conversation memory: ChatCommand-এ ConversationId+UserId; IConversationStore (Redis, user-scoped, TTL); history+summary LLM-এ পাঠায়, MaxRecent ছাড়ালে overflow LLM-summarize করে trim (usage="chat-summary"); memory থাকলে semantic-cache skip; feature-toggle। 36 tests pass. Verified build+test.
+  - [x] 6g — evals harness: IEvalDataset (app-specific seed) → RunEvalsCommand প্রতি case RAG pipeline reuse করে চালায়; EvalScorer (pure: keyword grounding + refusal) → EvalReport (pass rate + per-case); POST /evals/run। 42 tests pass. Verified build+test.
 - [ ] Phase 7 — Infra/product advanced (multi-tenancy, queue, dashboards, MCP)
 - [ ] Phase 8 — Quality/DevEx (tests, CI/CD, OTel)
 - [ ] Phase 9 — Boilerplate packaging (template, conventions, strip demo)
