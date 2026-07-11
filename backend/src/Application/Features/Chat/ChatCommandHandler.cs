@@ -11,15 +11,26 @@ public class ChatCommandHandler(
     ILlmUsageRecorder usageRecorder,
     IEmbeddingProvider embeddingProvider,
     ISemanticCache semanticCache,
-    IModelRouter modelRouter)
+    IModelRouter modelRouter,
+    IPromptGuard promptGuard)
     : IRequestHandler<ChatCommand, Result<ChatResponse>>
 {
     public async Task<Result<ChatResponse>> Handle(ChatCommand request, CancellationToken cancellationToken)
     {
+        // guardrails — LLM-এ যাওয়ার আগে: injection block, PII redact
+        var message = request.Message;
+        if (promptGuard.IsEnabled)
+        {
+            var guard = promptGuard.Check(message);
+            if (guard.Blocked)
+                return Error.Validation("Chat.Blocked", guard.Reason!);
+            message = guard.SafeInput;
+        }
+
         // provider explicit না দিলে + routing on → complexity দেখে cheap/strong auto-select।
         var providerName = request.Provider;
         if (string.IsNullOrWhiteSpace(providerName) && modelRouter.IsEnabled)
-            providerName = modelRouter.Route(request.Message);
+            providerName = modelRouter.Route(message);
 
         var provider = resolver.Resolve(providerName);
         if (provider is null)
@@ -33,7 +44,7 @@ public class ChatCommandHandler(
         float[]? queryEmbedding = null;
         if (semanticCache.IsEnabled)
         {
-            queryEmbedding = await embeddingProvider.EmbedAsync(request.Message, EmbeddingTaskType.RetrievalQuery, cancellationToken);
+            queryEmbedding = await embeddingProvider.EmbedAsync(message, EmbeddingTaskType.RetrievalQuery, cancellationToken);
             var cached = await semanticCache.GetAsync(queryEmbedding, cancellationToken);
             if (cached is not null)
                 return new ChatResponse(cached, "cache", "cache", Cached: true);
@@ -41,7 +52,7 @@ public class ChatCommandHandler(
 
         var stopwatch = Stopwatch.StartNew();
         var result = await provider.CompleteAsync(
-            [new ChatMessage("user", request.Message)], cancellationToken);
+            [new ChatMessage("user", message)], cancellationToken);
         stopwatch.Stop();
 
         usageRecorder.Record(new LlmUsageRecord(

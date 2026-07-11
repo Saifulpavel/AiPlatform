@@ -75,6 +75,10 @@ public static class DependencyInjection
         services.Configure<Llm.RoutingSettings>(configuration.GetSection(Llm.RoutingSettings.SectionName));
         services.AddSingleton<IModelRouter, Llm.HeuristicModelRouter>();
 
+        // Guardrails — LLM input-এ prompt-injection block + PII redact (trust boundary)
+        services.Configure<Guardrails.GuardrailsSettings>(configuration.GetSection(Guardrails.GuardrailsSettings.SectionName));
+        services.AddSingleton<IPromptGuard, Guardrails.RegexPromptGuard>();
+
         // RAG retrievers (keyword + embedding + qdrant)
         services.Configure<Rag.QdrantSettings>(configuration.GetSection(Rag.QdrantSettings.SectionName));
         services.AddSingleton<IVectorStore, Rag.QdrantVectorStore>();

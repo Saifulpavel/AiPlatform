@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Application\AiPlatform.Application.csproj" />
+    <ProjectReference Include="..\..\src\Infrastructure\AiPlatform.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

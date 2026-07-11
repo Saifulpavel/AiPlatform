@@ -5,13 +5,23 @@ using MediatR;
 
 namespace AiPlatform.Application.Features.Chat;
 
-public class ChatStreamCommandHandler(IChatProviderResolver resolver)
+public class ChatStreamCommandHandler(IChatProviderResolver resolver, IPromptGuard promptGuard)
     : IStreamRequestHandler<ChatStreamCommand, string>
 {
     public async IAsyncEnumerable<string> Handle(
         ChatStreamCommand request,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        // guardrails — injection block, PII redact (streaming path)
+        var message = request.Message;
+        if (promptGuard.IsEnabled)
+        {
+            var guard = promptGuard.Check(message);
+            if (guard.Blocked)
+                throw new InvalidOperationException(guard.Reason);
+            message = guard.SafeInput;
+        }
+
         var provider = resolver.Resolve(request.Provider);
         if (provider is null)
         {
@@ -20,7 +30,7 @@ public class ChatStreamCommandHandler(IChatProviderResolver resolver)
         }
 
         await foreach (var token in provider.StreamAsync(
-            [new ChatMessage("user", request.Message)], cancellationToken))
+            [new ChatMessage("user", message)], cancellationToken))
         {
             yield return token;
         }
