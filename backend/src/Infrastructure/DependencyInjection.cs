@@ -82,9 +82,14 @@ public static class DependencyInjection
         // RAG retrievers (keyword + embedding + qdrant)
         services.Configure<Rag.QdrantSettings>(configuration.GetSection(Rag.QdrantSettings.SectionName));
         services.AddSingleton<IVectorStore, Rag.QdrantVectorStore>();
-        services.AddSingleton<IRetriever, Rag.KeywordRetriever>();
-        services.AddSingleton<IRetriever, Rag.EmbeddingRetriever>();
+        // keyword + embedding concrete-ও রাখি → hybrid এদের সরাসরি inject করে (IRetriever collection-এ
+        // hybrid নিজেও থাকে, তাই IEnumerable<IRetriever> নিলে circular; concrete inject সেটা এড়ায়)।
+        services.AddSingleton<Rag.KeywordRetriever>();
+        services.AddSingleton<Rag.EmbeddingRetriever>();
+        services.AddSingleton<IRetriever>(sp => sp.GetRequiredService<Rag.KeywordRetriever>());
+        services.AddSingleton<IRetriever>(sp => sp.GetRequiredService<Rag.EmbeddingRetriever>());
         services.AddSingleton<IRetriever, Rag.QdrantRetriever>();
+        services.AddSingleton<IRetriever, Rag.HybridRetriever>();
         services.AddSingleton<IRetrieverResolver, Rag.RetrieverResolver>();
 
         // Document ingestion (upload → background chunk→embed→upsert)

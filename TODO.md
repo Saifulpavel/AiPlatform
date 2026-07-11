@@ -28,7 +28,7 @@
   - [x] 6b — semantic cache (Qdrant, embedding similarity ≥ threshold → skip LLM); feature-toggle, conservative threshold. Verified.
   - [x] 6c — model routing: auto mode-এ complexity (length/keyword) দেখে cheap(gemini)/strong(groq) auto-select; config-driven, feature-toggle। Verified.
   - [x] 6d — guardrails: IPromptGuard (regex) → chat + stream input-এ prompt-injection block + PII (email/phone/cc) redact; config-driven pattern, feature-toggle। 31 tests pass. Verified build+test.
-  - [ ] 6e — hybrid search + reranking
+  - [x] 6e — hybrid search: HybridRetriever (method="hybrid") keyword+embedding চালিয়ে Reciprocal Rank Fusion দিয়ে merge+rerank; concrete-inject করে DI cycle এড়ানো; pure Fuse() 3 test। 34 tests pass. Verified build+test.
   - [ ] 6f — conversation memory (history + summarize)
   - [ ] 6g — evals harness + report
 - [ ] Phase 7 — Infra/product advanced (multi-tenancy, queue, dashboards, MCP)

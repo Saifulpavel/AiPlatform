@@ -282,6 +282,16 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 #           এখানে খোঁজা হয় Qdrant vector DB-তে (scalable, persistent), in-memory cosine নয়।
 #           💡 Qdrant container চালু থাকতে হবে: docker compose up -d
 
+### (4c) hybrid — keyword + embedding মিলিয়ে RRF দিয়ে rerank (Phase 6e)
+POST {{api}}/rag
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "question": "আমি কি বিকাশে টাকা দিতে পারবো?", "method": "hybrid", "provider": "groq" }
+### Expected: 200 ✅ payment doc উপরে। hybrid = lexical (keyword) + semantic (embedding) দুই signal,
+#           Reciprocal Rank Fusion দিয়ে merge — দুই list-এ থাকা doc boost পায় (একক method-এর চেয়ে robust)।
+#           Qdrant লাগে না (keyword+embedding দুটোই in-memory)।
+
 ### (5) off-topic — grounding test (দুই method-এই "তথ্য নেই" হওয়া উচিত)
 POST {{api}}/rag
 Content-Type: application/json
