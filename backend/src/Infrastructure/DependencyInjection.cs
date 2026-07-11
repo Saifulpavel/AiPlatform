@@ -79,6 +79,10 @@ public static class DependencyInjection
         services.Configure<Guardrails.GuardrailsSettings>(configuration.GetSection(Guardrails.GuardrailsSettings.SectionName));
         services.AddSingleton<IPromptGuard, Guardrails.RegexPromptGuard>();
 
+        // Conversation memory — Redis-এ history + long হলে summarize (multi-turn chat)
+        services.Configure<Conversation.ConversationSettings>(configuration.GetSection(Conversation.ConversationSettings.SectionName));
+        services.AddSingleton<IConversationStore, Conversation.RedisConversationStore>();
+
         // RAG retrievers (keyword + embedding + qdrant)
         services.Configure<Rag.QdrantSettings>(configuration.GetSection(Rag.QdrantSettings.SectionName));
         services.AddSingleton<IVectorStore, Rag.QdrantVectorStore>();

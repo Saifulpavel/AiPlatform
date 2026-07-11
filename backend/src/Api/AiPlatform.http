@@ -150,6 +150,23 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 { "message": "আমার email a@b.com আর ফোন +8801712345678 — এইটা মনে রাখো।", "provider": "groq" }
 ### Expected: 200 — LLM-এ email→[REDACTED_EMAIL], phone→[REDACTED_PHONE] হয়ে যায় (উত্তরে raw PII থাকবে না)।
 
+### chat — MEMORY turn 1: নাম বলি (conversationId দিলে multi-turn চালু) (Phase 6f)
+POST {{api}}/chat
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "আমার নাম সাইফুল। মনে রাখো।", "provider": "groq", "conversationId": "demo-1" }
+### Expected: 200, { answer, conversationId: "demo-1" } — history Redis-এ (conv:{userId}:demo-1) জমা।
+
+### chat — MEMORY turn 2: নাম মনে আছে? (একই conversationId)
+POST {{api}}/chat
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "আমার নাম কী?", "provider": "groq", "conversationId": "demo-1" }
+### Expected: 200 — উত্তরে "সাইফুল" (turn 1-এর history context হিসেবে LLM-এ গেছে)।
+#           💡 MaxRecentMessages ছাড়ালে পুরনো turn auto-summarize হয় (usage-এ feature="chat-summary" দেখাবে)।
+
 ### chat streaming (SSE — token আসামাত্র)
 POST {{api}}/chat/stream
 Content-Type: application/json
