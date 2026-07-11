@@ -83,6 +83,9 @@ public static class DependencyInjection
         services.Configure<Conversation.ConversationSettings>(configuration.GetSection(Conversation.ConversationSettings.SectionName));
         services.AddSingleton<IConversationStore, Conversation.RedisConversationStore>();
 
+        // Evals — RAG grounding eval dataset (app-specific/demo seed)
+        services.AddSingleton<IEvalDataset, Evals.RagEvalDataset>();
+
         // RAG retrievers (keyword + embedding + qdrant)
         services.Configure<Rag.QdrantSettings>(configuration.GetSection(Rag.QdrantSettings.SectionName));
         services.AddSingleton<IVectorStore, Rag.QdrantVectorStore>();

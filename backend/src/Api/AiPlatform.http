@@ -209,6 +209,18 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 
 
 ### ============================================================
+### Evals — RAG grounding harness + report (Phase 6g)
+### ============================================================
+
+### run evals (dataset case গুলো RAG দিয়ে চালায়, keyword/refusal দিয়ে score)
+POST {{api}}/evals/run?provider=groq
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 200, { total, passed, passRate, results[] }
+### প্রতি result: { id, passed, answer, failReason }। off-topic case-এ model "নেই" বললে pass (grounding)।
+### 💡 LLM key + (embedding/hybrid case-এ) embedding provider লাগবে। pass rate model quality-র signal।
+
+
+### ============================================================
 ### Documents — upload → background ingest (chunk→embed→Qdrant) → status
 ### upload করা doc method=qdrant RAG-এ auto চলে আসে।
 ### ============================================================
