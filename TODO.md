@@ -26,7 +26,7 @@
 - [~] Phase 6 — AI-specific (branch `feature/phase-6-ai-specific`)
   - [x] 6a — LLM observability: per-call provider/model/tokens/cost/latency → queue→DB, /usage summary endpoint; EF retry-on-failure. Verified.
   - [x] 6b — semantic cache (Qdrant, embedding similarity ≥ threshold → skip LLM); feature-toggle, conservative threshold. Verified.
-  - [ ] 6c — model routing (complexity → cheap/strong)
+  - [x] 6c — model routing: auto mode-এ complexity (length/keyword) দেখে cheap(gemini)/strong(groq) auto-select; config-driven, feature-toggle। Verified.
   - [ ] 6d — guardrails (prompt-injection + PII redaction)
   - [ ] 6e — hybrid search + reranking
   - [ ] 6f — conversation memory (history + summarize)

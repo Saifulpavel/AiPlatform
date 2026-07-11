@@ -10,12 +10,18 @@ public class ChatCommandHandler(
     IChatProviderResolver resolver,
     ILlmUsageRecorder usageRecorder,
     IEmbeddingProvider embeddingProvider,
-    ISemanticCache semanticCache)
+    ISemanticCache semanticCache,
+    IModelRouter modelRouter)
     : IRequestHandler<ChatCommand, Result<ChatResponse>>
 {
     public async Task<Result<ChatResponse>> Handle(ChatCommand request, CancellationToken cancellationToken)
     {
-        var provider = resolver.Resolve(request.Provider);
+        // provider explicit না দিলে + routing on → complexity দেখে cheap/strong auto-select।
+        var providerName = request.Provider;
+        if (string.IsNullOrWhiteSpace(providerName) && modelRouter.IsEnabled)
+            providerName = modelRouter.Route(request.Message);
+
+        var provider = resolver.Resolve(providerName);
         if (provider is null)
         {
             var requested = string.IsNullOrWhiteSpace(request.Provider) ? "default" : request.Provider;

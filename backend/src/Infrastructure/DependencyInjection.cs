@@ -71,6 +71,10 @@ public static class DependencyInjection
         services.AddSingleton<IChatProviderResolver, Llm.ChatProviderResolver>();
         services.AddSingleton<IEmbeddingProvider, Llm.GeminiEmbeddingProvider>();
 
+        // Model routing — auto mode-এ complexity দেখে cheap/strong provider select
+        services.Configure<Llm.RoutingSettings>(configuration.GetSection(Llm.RoutingSettings.SectionName));
+        services.AddSingleton<IModelRouter, Llm.HeuristicModelRouter>();
+
         // RAG retrievers (keyword + embedding + qdrant)
         services.Configure<Rag.QdrantSettings>(configuration.GetSection(Rag.QdrantSettings.SectionName));
         services.AddSingleton<IVectorStore, Rag.QdrantVectorStore>();
