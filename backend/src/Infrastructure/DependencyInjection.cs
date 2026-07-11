@@ -86,6 +86,10 @@ public static class DependencyInjection
         // Evals — RAG grounding eval dataset (app-specific/demo seed)
         services.AddSingleton<IEvalDataset, Evals.RagEvalDataset>();
 
+        // Idempotency — mutating endpoint-এ duplicate request dedup (Redis slot)
+        services.Configure<Idempotency.IdempotencySettings>(configuration.GetSection(Idempotency.IdempotencySettings.SectionName));
+        services.AddSingleton<IIdempotencyStore, Idempotency.RedisIdempotencyStore>();
+
         // RAG retrievers (keyword + embedding + qdrant)
         services.Configure<Rag.QdrantSettings>(configuration.GetSection(Rag.QdrantSettings.SectionName));
         services.AddSingleton<IVectorStore, Rag.QdrantVectorStore>();

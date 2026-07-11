@@ -31,6 +31,14 @@
   - [x] 6e — hybrid search: HybridRetriever (method="hybrid") keyword+embedding চালিয়ে Reciprocal Rank Fusion দিয়ে merge+rerank; concrete-inject করে DI cycle এড়ানো; pure Fuse() 3 test। 34 tests pass. Verified build+test.
   - [x] 6f — conversation memory: ChatCommand-এ ConversationId+UserId; IConversationStore (Redis, user-scoped, TTL); history+summary LLM-এ পাঠায়, MaxRecent ছাড়ালে overflow LLM-summarize করে trim (usage="chat-summary"); memory থাকলে semantic-cache skip; feature-toggle। 36 tests pass. Verified build+test.
   - [x] 6g — evals harness: IEvalDataset (app-specific seed) → RunEvalsCommand প্রতি case RAG pipeline reuse করে চালায়; EvalScorer (pure: keyword grounding + refusal) → EvalReport (pass rate + per-case); POST /evals/run। 42 tests pass. Verified build+test.
-- [ ] Phase 7 — Infra/product advanced (multi-tenancy, queue, dashboards, MCP)
+- [~] Phase 7 — Infra/product advanced (branch `feature/phase-7-infra-advanced`)
+  - [x] 7a — idempotency keys: opt-in `[IdempotencyFilter]` + Idempotency-Key header; Redis SET-NX slot (Started/InProgress/Completed) → duplicate mutating request dedup (2xx cache, fail→abandon/retry); document upload-এ প্রয়োগ; user-scoped key। 47 tests pass. Verified build+test.
+  - [ ] 7b — pagination + soft-delete (list resources)
+  - [ ] 7c — async queue → Redis Streams (durable ingestion)
+  - [ ] 7d — multi-tenancy + audit log
+  - [ ] 7e — chat history sidebar (endpoint + frontend)
+  - [ ] 7f — admin dashboard (frontend)
+  - [ ] 7g — settings / i18n (frontend)
+  - [ ] 7h — MCP server + tool-agent (🌟 north-star)
 - [ ] Phase 8 — Quality/DevEx (tests, CI/CD, OTel)
 - [ ] Phase 9 — Boilerplate packaging (template, conventions, strip demo)

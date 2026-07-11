@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using AiPlatform.Api.Common;
+using AiPlatform.Api.Filters;
 using AiPlatform.Application.Common.Results;
 using AiPlatform.Application.Features.Documents.GetStatus;
 using AiPlatform.Application.Features.Documents.Upload;
@@ -15,7 +16,9 @@ namespace AiPlatform.Api.Controllers;
 public class DocumentsController(IMediator mediator) : ApiControllerBase
 {
     // .txt/.md আপলোড → background-এ chunk→embed→Qdrant। সাথে সাথে documentId ফেরত।
+    // Idempotency-Key header দিলে duplicate upload আবার document/ingestion বানায় না।
     [HttpPost]
+    [TypeFilter(typeof(IdempotencyFilter))]
     public async Task<IActionResult> Upload(IFormFile file, CancellationToken cancellationToken)
     {
         if (file is null || file.Length == 0)

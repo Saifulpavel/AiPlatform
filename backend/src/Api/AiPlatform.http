@@ -239,6 +239,21 @@ Content-Type: text/plain
 ------Boundary--
 ### Expected: 202, { documentId, status: "Pending" }
 
+### upload — IDEMPOTENT (একই Idempotency-Key দুবার = এক documentId, duplicate ingestion নয়) (Phase 7a)
+POST {{api}}/documents
+Authorization: Bearer {{login.response.body.$.accessToken}}
+Idempotency-Key: demo-key-123
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="faq.txt"
+Content-Type: text/plain
+
+একই key দিয়ে আবার পাঠালে আগের response হুবহু ফেরত আসে।
+------Boundary--
+### Expected: প্রথমবার 202 { documentId }। হুবহু এই request আবার পাঠালে → same documentId (নতুন doc নয়)।
+###           দুটো request একসাথে (in-flight) হলে দ্বিতীয়টা → 409 "already being processed"।
+
 ### upload — INVALID (unsupported ext বা খালি file)
 POST {{api}}/documents
 Authorization: Bearer {{login.response.body.$.accessToken}}
