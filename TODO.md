@@ -43,7 +43,7 @@
     - [x] 7e-ii-a — backend: conversation memory logic → shared IConversationMemory service (Build+Persist+summarize, dedup); ChatCommandHandler refactored; ChatStreamCommandHandler এখন memory-aware (history LLM-এ পাঠায় + streamed reply accumulate করে persist) → streaming UX টিকিয়ে history লেখে (sidebar-এর data source)। 70 tests pass. Verified build+test.
     - [x] 7e-ii-b — frontend: conversationsApi (RTK Query list/get, Conversation tag); useChatStream-এ conversationId; ChatPage sidebar (conversation list, নতুন চ্যাট, click-to-load, send-এ crypto.randomUUID + tag invalidate)। tsc+vite build+lint green.
   - [x] 7f — admin dashboard (frontend): dashboardApi (usage /usage + runEvals /evals/run); DashboardPage — LLM cost/token stat cards + by-model table + evals runner (provider select → pass rate + per-case pass/fail); /dashboard route + HomePage card। tsc+vite build+lint green.
-  - [ ] 7g — settings / i18n (frontend)
+  - [x] 7g — settings / i18n (frontend): uiSlice (language/theme/defaultProvider, localStorage persist via store.subscribe); lean i18n (strings bn/en + useT hook, representative strings); SettingsPage (/settings) — language/theme/default-provider select; ThemeToggle → slice; AppShell settings gear; defaultProvider Chat/RAG/Dashboard-এ; RAG-এ hybrid method যোগ। build+lint green; preview boot verified (no console error)। ceiling: full-app string translation incremental।
   - [ ] 7h — MCP server + tool-agent (🌟 north-star)
 - [ ] Phase 8 — Quality/DevEx (tests, CI/CD, OTel)
 - [ ] Phase 9 — Boilerplate packaging (template, conventions, strip demo)

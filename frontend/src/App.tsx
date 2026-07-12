@@ -9,6 +9,7 @@ import { ChatPage } from '@/features/chat/ChatPage'
 import { RagPage } from '@/features/rag/RagPage'
 import { DocumentsPage } from '@/features/documents/DocumentsPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
+import { SettingsPage } from '@/features/settings/SettingsPage'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="/rag" element={<RagPage />} />
             <Route path="/documents" element={<DocumentsPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Route>
 

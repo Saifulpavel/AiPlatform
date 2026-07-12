@@ -11,6 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useAppSelector } from '@/app/hooks'
+import { selectDefaultProvider } from '@/features/settings/uiSlice'
 import { useRunEvalsMutation, useUsageSummaryQuery } from './dashboardApi'
 
 const PROVIDERS = ['groq', 'gemini', 'mistral']
@@ -30,7 +32,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 export function DashboardPage() {
   const { data: usage, isLoading: usageLoading } = useUsageSummaryQuery()
-  const [provider, setProvider] = useState('groq')
+  const [provider, setProvider] = useState(useAppSelector(selectDefaultProvider))
   const [runEvals, { data: report, isLoading: evalsLoading }] = useRunEvalsMutation()
 
   const onRunEvals = async () => {

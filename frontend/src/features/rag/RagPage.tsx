@@ -11,15 +11,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useAppSelector } from '@/app/hooks'
+import { selectDefaultProvider } from '@/features/settings/uiSlice'
 import { useRagMutation } from './ragApi'
 
-const METHODS = ['keyword', 'embedding', 'qdrant']
+const METHODS = ['keyword', 'embedding', 'qdrant', 'hybrid']
 const PROVIDERS = ['groq', 'gemini', 'mistral']
 
 export function RagPage() {
   const [question, setQuestion] = useState('')
   const [method, setMethod] = useState('embedding')
-  const [provider, setProvider] = useState('groq')
+  const [provider, setProvider] = useState(useAppSelector(selectDefaultProvider))
   const [rag, { data, isLoading }] = useRagMutation()
 
   const ask = async () => {

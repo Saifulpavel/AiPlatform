@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Loader2, Plus, SendHorizontal } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { useAppDispatch } from '@/app/hooks'
+import { useAppDispatch, useAppSelector } from '@/app/hooks'
 import { baseApi } from '@/features/api/baseApi'
+import { selectDefaultProvider } from '@/features/settings/uiSlice'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -26,7 +27,7 @@ const PROVIDERS = ['groq', 'gemini', 'mistral']
 export function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
-  const [provider, setProvider] = useState('groq')
+  const [provider, setProvider] = useState(useAppSelector(selectDefaultProvider))
   const [conversationId, setConversationId] = useState<string | null>(null)
   const { stream, isStreaming } = useChatStream()
   const dispatch = useAppDispatch()
