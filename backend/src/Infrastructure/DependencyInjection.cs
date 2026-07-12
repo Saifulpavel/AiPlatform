@@ -105,7 +105,8 @@ public static class DependencyInjection
 
         // Document ingestion (upload → background chunk→embed→upsert)
         services.AddScoped<IDocumentRepository, Persistence.DocumentRepository>();
-        services.AddSingleton<IIngestionQueue, Ingestion.InMemoryIngestionQueue>();
+        services.Configure<Ingestion.IngestionQueueSettings>(configuration.GetSection(Ingestion.IngestionQueueSettings.SectionName));
+        services.AddSingleton<IIngestionQueue, Ingestion.RedisStreamIngestionQueue>();
         services.AddHostedService<Ingestion.IngestionBackgroundService>();
 
         return services;

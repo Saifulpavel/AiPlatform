@@ -34,7 +34,7 @@
 - [~] Phase 7 — Infra/product advanced (branch `feature/phase-7-infra-advanced`)
   - [x] 7a — idempotency keys: opt-in `[IdempotencyFilter]` + Idempotency-Key header; Redis SET-NX slot (Started/InProgress/Completed) → duplicate mutating request dedup (2xx cache, fail→abandon/retry); document upload-এ প্রয়োগ; user-scoped key। 47 tests pass. Verified build+test.
   - [x] 7b — pagination + soft-delete: generic PagedResult<T>; Document.IsDeleted/DeletedAtUtc + EF global query filter (auto-hide); GET /documents (paged, newest-first, validated 1..100) + DELETE (soft); index on CreatedAtUtc; migration AddDocumentSoftDelete। 54 tests pass. Verified build+test.
-  - [ ] 7c — async queue → Redis Streams (durable ingestion)
+  - [x] 7c — async queue → Redis Streams: IIngestionQueue এখন XADD/XREADGROUP/XACK (consumer group); at-least-once — unacked message crash-এ XAUTOCLAIM দিয়ে reclaim; idempotent processing (deterministic Qdrant point-id + Completed হলে skip → redelivery-তে duplicate নয়); per-process consumer name (multi-replica ready); InMemoryChannel queue বাদ। 58 tests pass. Verified build+test.
   - [ ] 7d — multi-tenancy + audit log
   - [ ] 7e — chat history sidebar (endpoint + frontend)
   - [ ] 7f — admin dashboard (frontend)
