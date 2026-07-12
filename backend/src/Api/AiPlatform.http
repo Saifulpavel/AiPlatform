@@ -273,6 +273,21 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 ### Expected: 200, status Pending→Processing→Completed, processedChunks/totalChunks progress।
 ### Completed হলে method=qdrant দিয়ে এই doc-এর প্রশ্ন করলে উত্তর আসবে।
 
+### documents — LIST (paged, newest-first, soft-deleted বাদ) (Phase 7b)
+GET {{api}}/documents?page=1&pageSize=20
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 200, { items[], page, pageSize, totalCount, totalPages }
+
+### documents — LIST invalid (pageSize > 100)
+GET {{api}}/documents?page=1&pageSize=500
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 400 validation (PageSize 1..100)
+
+### documents — DELETE (soft) — এরপর list/status-এ আর দেখাবে না
+DELETE {{api}}/documents/{{upload.response.body.$.documentId}}
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 204 NoContent। আবার GET {id} → 404 (query filter hide করে, সারি DB-তে থাকে)।
+
 
 ### ============================================================
 ### RAG — keyword বনাম embedding পার্থক্য বোঝার জন্য সাজানো

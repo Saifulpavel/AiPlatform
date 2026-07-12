@@ -19,4 +19,8 @@ public class Document
     public int ProcessedChunks { get; set; }
     public string? ErrorMessage { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    // soft-delete — সারি মুছি না, flag করি (query filter auto-hide করে; audit/undo সম্ভব)।
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAtUtc { get; set; }
 }

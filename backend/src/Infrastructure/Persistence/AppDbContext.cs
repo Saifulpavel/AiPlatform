@@ -20,6 +20,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             entity.Property(d => d.FileName).HasMaxLength(260).IsRequired();
             entity.Property(d => d.ErrorMessage).HasMaxLength(2000);
             // Content nvarchar(max) — length সীমা না দিয়ে
+            entity.HasQueryFilter(d => !d.IsDeleted);   // soft-deleted সব query থেকে auto-hide
+            entity.HasIndex(d => d.CreatedAtUtc);       // newest-first pagination
         });
 
         builder.Entity<LlmUsage>(entity =>
