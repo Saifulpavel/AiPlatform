@@ -167,6 +167,16 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 ### Expected: 200 — উত্তরে "সাইফুল" (turn 1-এর history context হিসেবে LLM-এ গেছে)।
 #           💡 MaxRecentMessages ছাড়ালে পুরনো turn auto-summarize হয় (usage-এ feature="chat-summary" দেখাবে)।
 
+### chat — CONVERSATIONS list (sidebar) (Phase 7e)
+GET {{api}}/chat/conversations
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 200, [ { conversationId, title (প্রথম প্রশ্ন), updatedAtUtc } ] newest-first (current user-এর)।
+
+### chat — CONVERSATION detail (summary + সাম্প্রতিক message)
+GET {{api}}/chat/conversations/demo-1
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 200, { conversationId, summary, messages[] }। অজানা id → 404।
+
 ### chat streaming (SSE — token আসামাত্র)
 POST {{api}}/chat/stream
 Content-Type: application/json

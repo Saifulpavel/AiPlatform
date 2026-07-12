@@ -4,6 +4,7 @@ using Asp.Versioning;
 using AiPlatform.Api.Common;
 using AiPlatform.Api.Contracts;
 using AiPlatform.Application.Features.Chat;
+using AiPlatform.Application.Features.Conversations;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,6 +22,22 @@ public class ChatController(IMediator mediator) : ApiControllerBase
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var result = await mediator.Send(
             new ChatCommand(request.Message, request.Provider, request.ConversationId, userId), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : ToProblem(result.Error);
+    }
+
+    // sidebar — current user-এর conversation list (newest-first)
+    [HttpGet("conversations")]
+    public async Task<IActionResult> Conversations(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new ListConversationsQuery(), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : ToProblem(result.Error);
+    }
+
+    // এক conversation-এর summary + সাম্প্রতিক message
+    [HttpGet("conversations/{conversationId}")]
+    public async Task<IActionResult> Conversation(string conversationId, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetConversationQuery(conversationId), cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : ToProblem(result.Error);
     }
 

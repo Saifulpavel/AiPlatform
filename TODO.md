@@ -38,7 +38,9 @@
   - [x] 7d — multi-tenancy + audit log
     - [x] 7d-i — multi-tenancy: TenantId on AppUser (per-signup) + JWT claim; ICurrentUser (claim→user/tenant); Document.TenantId + EF global query filter (`!IsDeleted && (tenant==Empty[system] || match)`) → background worker HTTP-context-হীন = Empty = সব দেখে; upload tenant-stamp; migration AddMultiTenancy। 59 tests pass. Verified build+test.
     - [x] 7d-ii — audit log: AuditEntry + IAuditableRequest marker (opt-in, command AuditAction দেয়) + AuditBehavior (MediatR pipeline, Validation-এর পরে, business-fail=succeeded:false); tenant-scoped write/read; GET /audit (paged); Upload/Delete auditable; migration AddAuditLog। 62 tests pass. Verified build+test.
-  - [ ] 7e — chat history sidebar (endpoint + frontend)
+  - [~] 7e — chat history sidebar (split)
+    - [x] 7e-i — backend: 6f store-এ Redis index hash (conv:index:{userId} → title+updatedAt); IConversationStore.ListAsync; ListConversations + GetConversation feature; GET /chat/conversations (list) + /chat/conversations/{id} (detail)। title = first user message। 66 tests pass. Verified build+test.
+    - [ ] 7e-ii — frontend: React sidebar (RTK Query endpoints, conversation list + click-to-load, new chat)
   - [ ] 7f — admin dashboard (frontend)
   - [ ] 7g — settings / i18n (frontend)
   - [ ] 7h — MCP server + tool-agent (🌟 north-star)

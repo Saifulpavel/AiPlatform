@@ -12,4 +12,7 @@ public interface IConversationStore
 
     Task<ConversationState> GetAsync(string userId, string conversationId, CancellationToken cancellationToken);
     Task SaveAsync(string userId, string conversationId, ConversationState state, CancellationToken cancellationToken);
+
+    // user-এর সব conversation (sidebar), newest-first।
+    Task<IReadOnlyList<ConversationSummary>> ListAsync(string userId, CancellationToken cancellationToken);
 }
