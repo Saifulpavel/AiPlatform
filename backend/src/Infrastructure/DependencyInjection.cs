@@ -90,6 +90,13 @@ public static class DependencyInjection
         services.Configure<Idempotency.IdempotencySettings>(configuration.GetSection(Idempotency.IdempotencySettings.SectionName));
         services.AddSingleton<IIdempotencyStore, Idempotency.RedisIdempotencyStore>();
 
+        // Agent — tool-calling loop + demo tools (feature-toggle, MaxIterations safety)
+        services.AddSingleton(
+            configuration.GetSection(Application.Features.Agent.AgentSettings.SectionName)
+                .Get<Application.Features.Agent.AgentSettings>() ?? new Application.Features.Agent.AgentSettings());
+        services.AddSingleton<ITool, Agent.CurrentTimeTool>();
+        services.AddSingleton<ITool, Agent.KnowledgeBaseSearchTool>();
+
         // RAG retrievers (keyword + embedding + qdrant)
         services.Configure<Rag.QdrantSettings>(configuration.GetSection(Rag.QdrantSettings.SectionName));
         services.AddSingleton<IVectorStore, Rag.QdrantVectorStore>();

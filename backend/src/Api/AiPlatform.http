@@ -177,6 +177,35 @@ GET {{api}}/chat/conversations/demo-1
 Authorization: Bearer {{login.response.body.$.accessToken}}
 ### Expected: 200, { conversationId, summary, messages[] }। অজানা id → 404।
 
+
+### ============================================================
+### Agent — tool-calling loop (native function-calling) (Phase 7h)
+### ============================================================
+
+### agent — tool ব্যবহার করে (current_time)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "এখন UTC সময় কত? tool ব্যবহার করে বলো।", "provider": "groq" }
+### Expected: 200, { answer, toolsUsed: ["current_time"] } — LLM tool call করে, execute হয়, final answer বাংলায়।
+
+### agent — KB search tool (company policy)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "রিটার্ন পলিসি কী? knowledge base দেখো।", "provider": "groq" }
+### Expected: 200, toolsUsed: ["search_knowledge_base"] — KB থেকে passage এনে উত্তর।
+
+### agent — INVALID (tool-calling নেই এমন provider)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "hi", "provider": "gemini" }
+### Expected: 400 — "does not support tool-calling. Use an OpenAI-compatible provider (e.g. groq)."
+
 ### chat streaming (SSE — token আসামাত্র)
 POST {{api}}/chat/stream
 Content-Type: application/json

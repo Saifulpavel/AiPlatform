@@ -9,7 +9,7 @@ namespace AiPlatform.Infrastructure.Llm;
 
 // OpenAI-compatible (Groq, Cerebras, OpenRouter, Mistral, GitHub Models) — একই format, শুধু URL/key/model ভিন্ন।
 public class OpenAiCompatibleChatProvider(IHttpClientFactory httpClientFactory, string name, ProviderConfig config)
-    : IChatProvider
+    : IChatProvider, IToolCallingProvider
 {
     public string Name => name;
 
@@ -112,5 +112,77 @@ public class OpenAiCompatibleChatProvider(IHttpClientFactory httpClientFactory, 
                 if (!string.IsNullOrEmpty(text)) yield return text;
             }
         }
+    }
+
+    // function-calling — tools পাঠাই; response-এ tool_calls থাকলে ফেরত দিই (agent execute করবে), নইলে content।
+    public async Task<ChatToolResult> CompleteWithToolsAsync(
+        IReadOnlyList<ChatMessage> messages, IReadOnlyList<ToolDefinition> tools, CancellationToken cancellationToken)
+    {
+        var body = new
+        {
+            model = config.Model,
+            tool_choice = "auto",
+            tools = tools.Select(t => new
+            {
+                type = "function",
+                function = new { name = t.Name, description = t.Description, parameters = t.ParametersSchema }
+            }).ToArray(),
+            messages = messages.Select(SerializeMessage).ToArray()
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, config.BaseUrl);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiKey);
+        request.Content = JsonContent.Create(body);
+
+        var http = httpClientFactory.CreateClient("llm");
+        using var response = await http.SendAsync(request, cancellationToken);
+        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new LlmProviderException(Name, (int)response.StatusCode, raw);
+
+        using var doc = JsonDocument.Parse(raw);
+        var message = doc.RootElement.GetProperty("choices")[0].GetProperty("message");
+
+        var content = message.TryGetProperty("content", out var c) && c.ValueKind == JsonValueKind.String
+            ? c.GetString()
+            : null;
+
+        var toolCalls = new List<ToolCall>();
+        if (message.TryGetProperty("tool_calls", out var calls) && calls.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var call in calls.EnumerateArray())
+            {
+                var fn = call.GetProperty("function");
+                toolCalls.Add(new ToolCall(
+                    call.GetProperty("id").GetString() ?? string.Empty,
+                    fn.GetProperty("name").GetString() ?? string.Empty,
+                    fn.TryGetProperty("arguments", out var a) ? a.GetString() ?? "{}" : "{}"));
+            }
+        }
+
+        var (inputTokens, outputTokens) = ReadUsage(doc.RootElement);
+        return new ChatToolResult(content, toolCalls, Name, config.Model, inputTokens, outputTokens);
+    }
+
+    // OpenAI wire-format: assistant tool-call ও tool-result message আলাদা shape।
+    private static object SerializeMessage(ChatMessage m)
+    {
+        if (m.Role == "assistant" && m.ToolCalls is { Count: > 0 })
+            return new
+            {
+                role = "assistant",
+                content = string.IsNullOrEmpty(m.Content) ? null : m.Content,
+                tool_calls = m.ToolCalls.Select(tc => new
+                {
+                    id = tc.Id,
+                    type = "function",
+                    function = new { name = tc.Name, arguments = tc.ArgumentsJson }
+                }).ToArray()
+            };
+
+        if (m.Role == "tool")
+            return new { role = "tool", tool_call_id = m.ToolCallId, content = m.Content };
+
+        return new { role = m.Role, content = m.Content };
     }
 }

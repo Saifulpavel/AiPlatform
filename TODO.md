@@ -44,6 +44,8 @@
     - [x] 7e-ii-b — frontend: conversationsApi (RTK Query list/get, Conversation tag); useChatStream-এ conversationId; ChatPage sidebar (conversation list, নতুন চ্যাট, click-to-load, send-এ crypto.randomUUID + tag invalidate)। tsc+vite build+lint green.
   - [x] 7f — admin dashboard (frontend): dashboardApi (usage /usage + runEvals /evals/run); DashboardPage — LLM cost/token stat cards + by-model table + evals runner (provider select → pass rate + per-case pass/fail); /dashboard route + HomePage card। tsc+vite build+lint green.
   - [x] 7g — settings / i18n (frontend): uiSlice (language/theme/defaultProvider, localStorage persist via store.subscribe); lean i18n (strings bn/en + useT hook, representative strings); SettingsPage (/settings) — language/theme/default-provider select; ThemeToggle → slice; AppShell settings gear; defaultProvider Chat/RAG/Dashboard-এ; RAG-এ hybrid method যোগ। build+lint green; preview boot verified (no console error)। ceiling: full-app string translation incremental।
-  - [ ] 7h — MCP server + tool-agent (🌟 north-star)
+  - [~] 7h — MCP server + tool-agent (🌟 north-star) (split)
+    - [x] 7h-i — tool-agent: native function-calling। ITool + IToolCallingProvider (OpenAiCompatible impl: tools request + tool_calls response + tool/assistant message serialize); ChatMessage-এ ToolCallId/ToolCalls; agentic loop handler (LLM→tool_calls→execute→feed back→answer, MaxIterations safety, feature-toggle); demo tools (current_time, search_knowledge_base); POST /agent; usage="agent"। 75 tests pass. Verified build+test.
+    - [ ] 7h-ii — MCP server: tool-গুলো official C# ModelContextProtocol SDK দিয়ে MCP protocol-এ expose
 - [ ] Phase 8 — Quality/DevEx (tests, CI/CD, OTel)
 - [ ] Phase 9 — Boilerplate packaging (template, conventions, strip demo)
