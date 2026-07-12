@@ -43,6 +43,6 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['Document'],
+  tagTypes: ['Document', 'Conversation'],
   endpoints: () => ({}), // feature-এ inject হবে (Phase 4b+)
 })
