@@ -42,7 +42,7 @@
     - [x] 7e-i — backend: 6f store-এ Redis index hash (conv:index:{userId} → title+updatedAt); IConversationStore.ListAsync; ListConversations + GetConversation feature; GET /chat/conversations (list) + /chat/conversations/{id} (detail)। title = first user message। 66 tests pass. Verified build+test.
     - [x] 7e-ii-a — backend: conversation memory logic → shared IConversationMemory service (Build+Persist+summarize, dedup); ChatCommandHandler refactored; ChatStreamCommandHandler এখন memory-aware (history LLM-এ পাঠায় + streamed reply accumulate করে persist) → streaming UX টিকিয়ে history লেখে (sidebar-এর data source)। 70 tests pass. Verified build+test.
     - [x] 7e-ii-b — frontend: conversationsApi (RTK Query list/get, Conversation tag); useChatStream-এ conversationId; ChatPage sidebar (conversation list, নতুন চ্যাট, click-to-load, send-এ crypto.randomUUID + tag invalidate)। tsc+vite build+lint green.
-  - [ ] 7f — admin dashboard (frontend)
+  - [x] 7f — admin dashboard (frontend): dashboardApi (usage /usage + runEvals /evals/run); DashboardPage — LLM cost/token stat cards + by-model table + evals runner (provider select → pass rate + per-case pass/fail); /dashboard route + HomePage card। tsc+vite build+lint green.
   - [ ] 7g — settings / i18n (frontend)
   - [ ] 7h — MCP server + tool-agent (🌟 north-star)
 - [ ] Phase 8 — Quality/DevEx (tests, CI/CD, OTel)

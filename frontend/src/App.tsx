@@ -8,6 +8,7 @@ import { HomePage } from '@/features/home/HomePage'
 import { ChatPage } from '@/features/chat/ChatPage'
 import { RagPage } from '@/features/rag/RagPage'
 import { DocumentsPage } from '@/features/documents/DocumentsPage'
+import { DashboardPage } from '@/features/dashboard/DashboardPage'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/rag" element={<RagPage />} />
             <Route path="/documents" element={<DocumentsPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
           </Route>
         </Route>
 

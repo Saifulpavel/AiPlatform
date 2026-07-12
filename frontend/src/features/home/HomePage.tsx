@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { FileUp, MessageSquare, Search } from 'lucide-react'
+import { BarChart3, FileUp, MessageSquare, Search } from 'lucide-react'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useMeQuery } from '@/features/auth/authApi'
 
@@ -7,6 +7,7 @@ const features = [
   { to: '/chat', icon: MessageSquare, title: 'Chat', desc: 'মাল্টি-প্রোভাইডার AI চ্যাট (streaming)' },
   { to: '/rag', icon: Search, title: 'RAG', desc: 'নিজের ডকুমেন্ট থেকে grounded উত্তর' },
   { to: '/documents', icon: FileUp, title: 'Documents', desc: 'ডকুমেন্ট আপলোড ও ingestion' },
+  { to: '/dashboard', icon: BarChart3, title: 'Dashboard', desc: 'LLM খরচ/টোকেন + RAG evals' },
 ]
 
 export function HomePage() {
@@ -17,7 +18,7 @@ export function HomePage() {
         <h1 className="text-2xl font-bold">স্বাগতম{user ? `, ${user.fullName}` : ''}</h1>
         <p className="text-muted-foreground">কোথায় যেতে চান?</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {features.map((f) => (
           <Link key={f.to} to={f.to}>
             <Card className="h-full gap-2 transition hover:border-primary hover:shadow-md">
@@ -30,7 +31,6 @@ export function HomePage() {
           </Link>
         ))}
       </div>
-      <p className="text-sm text-muted-foreground">Chat / RAG / Documents পেজ Phase 4d–4e এ আসছে।</p>
     </div>
   )
 }
