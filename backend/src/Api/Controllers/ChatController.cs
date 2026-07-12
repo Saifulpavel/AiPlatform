@@ -57,8 +57,9 @@ public class ChatController(IMediator mediator) : ApiControllerBase
 
         try
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var stream = mediator.CreateStream(
-                new ChatStreamCommand(request.Message, request.Provider), cancellationToken);
+                new ChatStreamCommand(request.Message, request.Provider, request.ConversationId, userId), cancellationToken);
 
             await foreach (var token in stream)
             {

@@ -40,7 +40,8 @@
     - [x] 7d-ii — audit log: AuditEntry + IAuditableRequest marker (opt-in, command AuditAction দেয়) + AuditBehavior (MediatR pipeline, Validation-এর পরে, business-fail=succeeded:false); tenant-scoped write/read; GET /audit (paged); Upload/Delete auditable; migration AddAuditLog। 62 tests pass. Verified build+test.
   - [~] 7e — chat history sidebar (split)
     - [x] 7e-i — backend: 6f store-এ Redis index hash (conv:index:{userId} → title+updatedAt); IConversationStore.ListAsync; ListConversations + GetConversation feature; GET /chat/conversations (list) + /chat/conversations/{id} (detail)। title = first user message। 66 tests pass. Verified build+test.
-    - [ ] 7e-ii — frontend: React sidebar (RTK Query endpoints, conversation list + click-to-load, new chat)
+    - [x] 7e-ii-a — backend: conversation memory logic → shared IConversationMemory service (Build+Persist+summarize, dedup); ChatCommandHandler refactored; ChatStreamCommandHandler এখন memory-aware (history LLM-এ পাঠায় + streamed reply accumulate করে persist) → streaming UX টিকিয়ে history লেখে (sidebar-এর data source)। 70 tests pass. Verified build+test.
+    - [ ] 7e-ii-b — frontend: React sidebar (RTK Query endpoints, conversation list + click-to-load, new chat, useChatStream-এ conversationId)
   - [ ] 7f — admin dashboard (frontend)
   - [ ] 7g — settings / i18n (frontend)
   - [ ] 7h — MCP server + tool-agent (🌟 north-star)
