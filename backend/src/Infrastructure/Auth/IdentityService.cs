@@ -17,7 +17,7 @@ public class IdentityService(
     public async Task<Result<string>> RegisterAsync(
         string email, string password, string fullName, CancellationToken cancellationToken)
     {
-        var user = new AppUser { UserName = email, Email = email, FullName = fullName };
+        var user = new AppUser { UserName = email, Email = email, FullName = fullName, TenantId = Guid.NewGuid() };
         var result = await userManager.CreateAsync(user, password);
         if (!result.Succeeded)
         {
@@ -46,7 +46,7 @@ public class IdentityService(
             return Error.Unauthorized("Auth.InvalidCredentials", "Invalid email or password.");
 
         var roles = await userManager.GetRolesAsync(user);
-        return new AuthUser(user.Id, user.Email!, user.FullName, roles.ToList());
+        return new AuthUser(user.Id, user.Email!, user.FullName, roles.ToList(), user.TenantId);
     }
 
     public async Task<Result<AuthUser>> GetUserByIdAsync(string userId, CancellationToken cancellationToken)
@@ -56,7 +56,7 @@ public class IdentityService(
             return Error.NotFound("Auth.UserNotFound", "User not found.");
 
         var roles = await userManager.GetRolesAsync(user);
-        return new AuthUser(user.Id, user.Email!, user.FullName, roles.ToList());
+        return new AuthUser(user.Id, user.Email!, user.FullName, roles.ToList(), user.TenantId);
     }
 
     public async Task<string?> GeneratePasswordResetTokenAsync(string email, CancellationToken cancellationToken)

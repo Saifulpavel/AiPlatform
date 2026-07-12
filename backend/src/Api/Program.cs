@@ -9,6 +9,7 @@ using Serilog;
 using AiPlatform.Api;
 using AiPlatform.Api.Common;
 using AiPlatform.Application;
+using AiPlatform.Application.Common.Interfaces;
 using AiPlatform.Infrastructure;
 using AiPlatform.Infrastructure.Auth;
 using AiPlatform.Infrastructure.Persistence;
@@ -32,6 +33,10 @@ try
     // Layer wiring
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
+
+    // current user/tenant (claim → ICurrentUser); DbContext tenant filter + upload-এ লাগে
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
     // --- JWT authentication ---
     var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()

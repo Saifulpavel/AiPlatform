@@ -8,13 +8,15 @@ namespace AiPlatform.Application.Features.Documents.Upload;
 // document DB-তে সেভ (Pending) → queue-তে ঢুকিয়ে সাথে সাথে ফেরত। ingestion background-এ হয়।
 public class UploadDocumentCommandHandler(
     IDocumentRepository repository,
-    IIngestionQueue ingestionQueue)
+    IIngestionQueue ingestionQueue,
+    ICurrentUser currentUser)
     : IRequestHandler<UploadDocumentCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(UploadDocumentCommand request, CancellationToken cancellationToken)
     {
         var document = new Document
         {
+            TenantId = currentUser.TenantId,
             FileName = request.FileName,
             Content = request.Content,
             Status = DocumentStatus.Pending

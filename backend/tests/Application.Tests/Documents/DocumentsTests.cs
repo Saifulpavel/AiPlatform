@@ -2,6 +2,7 @@ using AiPlatform.Application.Common.Interfaces;
 using AiPlatform.Application.Common.Results;
 using AiPlatform.Application.Features.Documents.Delete;
 using AiPlatform.Application.Features.Documents.List;
+using AiPlatform.Application.Features.Documents.Upload;
 using AiPlatform.Domain.Entities;
 using NSubstitute;
 
@@ -49,6 +50,25 @@ public class DocumentsTests
         Assert.True(result.IsFailure);
         Assert.Equal(ErrorType.NotFound, result.Error.Type);
         await _repo.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Upload_StampsCurrentTenantId()
+    {
+        var tenant = Guid.NewGuid();
+        var currentUser = Substitute.For<ICurrentUser>();
+        currentUser.TenantId.Returns(tenant);
+        var queue = Substitute.For<IIngestionQueue>();
+
+        Document? saved = null;
+        await _repo.AddAsync(Arg.Do<Document>(d => saved = d), Arg.Any<CancellationToken>());
+
+        await new UploadDocumentCommandHandler(_repo, queue, currentUser)
+            .Handle(new UploadDocumentCommand("f.txt", "hi"), CancellationToken.None);
+
+        Assert.NotNull(saved);
+        Assert.Equal(tenant, saved!.TenantId);
+        await queue.Received().EnqueueAsync(saved.Id, Arg.Any<CancellationToken>());
     }
 
     [Theory]
