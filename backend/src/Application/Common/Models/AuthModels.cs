@@ -1,7 +1,7 @@
 namespace AiPlatform.Application.Common.Models;
 
 // Token generation-এর জন্য দরকারি user তথ্য (Identity type Application-এ আসে না)।
-public record AuthUser(string Id, string Email, string FullName, IReadOnlyList<string> Roles);
+public record AuthUser(string Id, string Email, string FullName, IReadOnlyList<string> Roles, Guid TenantId = default);
 
 // Access token + কখন expire করবে।
 public record AccessToken(string Token, DateTime ExpiresAtUtc);

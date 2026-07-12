@@ -6,14 +6,20 @@ export function useChatStream() {
   const token = useAppSelector((s) => s.auth.accessToken)
   const [isStreaming, setIsStreaming] = useState(false)
 
-  const stream = async (message: string, provider: string, onToken: (t: string) => void) => {
+  const stream = async (
+    message: string,
+    provider: string,
+    conversationId: string | null,
+    onToken: (t: string) => void,
+  ) => {
     setIsStreaming(true)
     try {
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         credentials: 'include',
-        body: JSON.stringify({ message, provider }),
+        // conversationId পাঠালে backend multi-turn memory চালু করে (history + persist)
+        body: JSON.stringify({ message, provider, conversationId }),
       })
       if (!res.ok || !res.body) throw new Error(`stream failed: ${res.status}`)
 

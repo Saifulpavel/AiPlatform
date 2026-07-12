@@ -1,9 +1,10 @@
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { LogOut, Sparkles } from 'lucide-react'
+import { LogOut, Settings, Sparkles } from 'lucide-react'
 import { useAppDispatch } from '@/app/hooks'
 import { logOut } from '@/features/auth/authSlice'
 import { useLogoutMutation, useMeQuery } from '@/features/auth/authApi'
+import { useT } from '@/i18n/useT'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -13,6 +14,7 @@ export function AppShell() {
   const [logout] = useLogoutMutation()
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const t = useT()
 
   const handleLogout = async () => {
     try {
@@ -34,8 +36,13 @@ export function AppShell() {
         <div className="flex items-center gap-3">
           {user && <span className="hidden text-sm text-muted-foreground sm:inline">{user.fullName}</span>}
           <ThemeToggle />
+          <Button variant="ghost" size="icon" asChild aria-label={t('settings')}>
+            <Link to="/settings">
+              <Settings className="size-4" />
+            </Link>
+          </Button>
           <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2">
-            <LogOut className="size-4" /> লগআউট
+            <LogOut className="size-4" /> {t('logout')}
           </Button>
         </div>
       </header>

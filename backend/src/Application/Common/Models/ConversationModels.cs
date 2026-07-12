@@ -6,3 +6,6 @@ public record ConversationState(string? Summary, IReadOnlyList<ChatMessage> Rece
 {
     public static ConversationState Empty { get; } = new(null, []);
 }
+
+// sidebar list item — কোন conversation, কী শিরোনাম (প্রথম প্রশ্ন), কখন শেষ update।
+public record ConversationSummary(string ConversationId, string Title, DateTime UpdatedAtUtc);

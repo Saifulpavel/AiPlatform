@@ -167,6 +167,56 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 ### Expected: 200 — উত্তরে "সাইফুল" (turn 1-এর history context হিসেবে LLM-এ গেছে)।
 #           💡 MaxRecentMessages ছাড়ালে পুরনো turn auto-summarize হয় (usage-এ feature="chat-summary" দেখাবে)।
 
+### chat — CONVERSATIONS list (sidebar) (Phase 7e)
+GET {{api}}/chat/conversations
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 200, [ { conversationId, title (প্রথম প্রশ্ন), updatedAtUtc } ] newest-first (current user-এর)।
+
+### chat — CONVERSATION detail (summary + সাম্প্রতিক message)
+GET {{api}}/chat/conversations/demo-1
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 200, { conversationId, summary, messages[] }। অজানা id → 404।
+
+
+### ============================================================
+### Agent — tool-calling loop (native function-calling) (Phase 7h)
+### ============================================================
+
+### agent — tool ব্যবহার করে (current_time)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "এখন UTC সময় কত? tool ব্যবহার করে বলো।", "provider": "groq" }
+### Expected: 200, { answer, toolsUsed: ["current_time"] } — LLM tool call করে, execute হয়, final answer বাংলায়।
+
+### agent — KB search tool (company policy)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "রিটার্ন পলিসি কী? knowledge base দেখো।", "provider": "groq" }
+### Expected: 200, toolsUsed: ["search_knowledge_base"] — KB থেকে passage এনে উত্তর।
+
+### agent — INVALID (tool-calling নেই এমন provider)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "hi", "provider": "gemini" }
+### Expected: 400 — "does not support tool-calling. Use an OpenAI-compatible provider (e.g. groq)."
+
+
+### ============================================================
+### MCP server — tools MCP protocol-এ expose (Phase 7h-ii)
+### ============================================================
+### এটা REST নয় — JSON-RPC over SSE (/sse + /messages)। plain HTTP call দিয়ে টেস্ট নয়।
+### verify: MCP Inspector দিয়ে →
+###   npx @modelcontextprotocol/inspector    (transport: SSE, url: http://localhost:5076/sse)
+###   → tools/list: current_time, search_knowledge_base দেখাবে; call করলে ফল আসবে।
+### অথবা Claude Desktop config-এ SSE server হিসেবে http://localhost:5076/sse যোগ করো।
+### ⚠️ demo: unauthenticated। production-এ MCP auth (OAuth) দরকার।
+
 ### chat streaming (SSE — token আসামাত্র)
 POST {{api}}/chat/stream
 Content-Type: application/json
@@ -221,6 +271,18 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 
 
 ### ============================================================
+### Audit — mutating action trail (tenant-scoped) (Phase 7d-ii)
+### ============================================================
+
+### audit list (upload/delete করার পর entry দেখা যাবে)
+GET {{api}}/audit?page=1&pageSize=20
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 200, { items[], page, pageSize, totalCount, totalPages }
+### item: { id, userId, action ("Document.Upload:faq.txt" / "Document.Delete:<id>"), succeeded, createdAtUtc }
+### 💡 শুধু current tenant-এর entry (query filter)। business-fail হলেও log হয় (succeeded=false)।
+
+
+### ============================================================
 ### Documents — upload → background ingest (chunk→embed→Qdrant) → status
 ### upload করা doc method=qdrant RAG-এ auto চলে আসে।
 ### ============================================================
@@ -238,6 +300,21 @@ Content-Type: text/plain
 প্রিমিয়াম গ্রাহকরা তাৎক্ষণিক রিফান্ড পান। রিফান্ড অনুরোধে অর্ডার নম্বর দিতে হবে।
 ------Boundary--
 ### Expected: 202, { documentId, status: "Pending" }
+
+### upload — IDEMPOTENT (একই Idempotency-Key দুবার = এক documentId, duplicate ingestion নয়) (Phase 7a)
+POST {{api}}/documents
+Authorization: Bearer {{login.response.body.$.accessToken}}
+Idempotency-Key: demo-key-123
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="faq.txt"
+Content-Type: text/plain
+
+একই key দিয়ে আবার পাঠালে আগের response হুবহু ফেরত আসে।
+------Boundary--
+### Expected: প্রথমবার 202 { documentId }। হুবহু এই request আবার পাঠালে → same documentId (নতুন doc নয়)।
+###           দুটো request একসাথে (in-flight) হলে দ্বিতীয়টা → 409 "already being processed"।
 
 ### upload — INVALID (unsupported ext বা খালি file)
 POST {{api}}/documents
@@ -257,6 +334,21 @@ GET {{api}}/documents/{{upload.response.body.$.documentId}}
 Authorization: Bearer {{login.response.body.$.accessToken}}
 ### Expected: 200, status Pending→Processing→Completed, processedChunks/totalChunks progress।
 ### Completed হলে method=qdrant দিয়ে এই doc-এর প্রশ্ন করলে উত্তর আসবে।
+
+### documents — LIST (paged, newest-first, soft-deleted বাদ) (Phase 7b)
+GET {{api}}/documents?page=1&pageSize=20
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 200, { items[], page, pageSize, totalCount, totalPages }
+
+### documents — LIST invalid (pageSize > 100)
+GET {{api}}/documents?page=1&pageSize=500
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 400 validation (PageSize 1..100)
+
+### documents — DELETE (soft) — এরপর list/status-এ আর দেখাবে না
+DELETE {{api}}/documents/{{upload.response.body.$.documentId}}
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 204 NoContent। আবার GET {id} → 404 (query filter hide করে, সারি DB-তে থাকে)।
 
 
 ### ============================================================

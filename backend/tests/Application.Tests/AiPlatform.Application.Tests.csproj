@@ -19,9 +19,15 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- Api ref + ASP.NET framework → IdempotencyFilter (MVC filter) unit-test করতে -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Application\AiPlatform.Application.csproj" />
     <ProjectReference Include="..\..\src\Infrastructure\AiPlatform.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Api\AiPlatform.Api.csproj" />
   </ItemGroup>
 
 </Project>

@@ -4,6 +4,7 @@ using Asp.Versioning;
 using AiPlatform.Api.Common;
 using AiPlatform.Api.Contracts;
 using AiPlatform.Application.Features.Chat;
+using AiPlatform.Application.Features.Conversations;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +25,22 @@ public class ChatController(IMediator mediator) : ApiControllerBase
         return result.IsSuccess ? Ok(result.Value) : ToProblem(result.Error);
     }
 
+    // sidebar — current user-এর conversation list (newest-first)
+    [HttpGet("conversations")]
+    public async Task<IActionResult> Conversations(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new ListConversationsQuery(), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : ToProblem(result.Error);
+    }
+
+    // এক conversation-এর summary + সাম্প্রতিক message
+    [HttpGet("conversations/{conversationId}")]
+    public async Task<IActionResult> Conversation(string conversationId, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetConversationQuery(conversationId), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : ToProblem(result.Error);
+    }
+
     // SSE streaming — token আসামাত্র client-এ পাঠায়
     [HttpPost("stream")]
     public async Task ChatStream(ChatRequest request, CancellationToken cancellationToken)
@@ -40,8 +57,9 @@ public class ChatController(IMediator mediator) : ApiControllerBase
 
         try
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var stream = mediator.CreateStream(
-                new ChatStreamCommand(request.Message, request.Provider), cancellationToken);
+                new ChatStreamCommand(request.Message, request.Provider, request.ConversationId, userId), cancellationToken);
 
             await foreach (var token in stream)
             {

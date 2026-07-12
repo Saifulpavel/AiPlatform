@@ -5,32 +5,57 @@ using AiPlatform.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace AiPlatform.Infrastructure.Ingestion;
 
 // queue থেকে document নিয়ে chunk→embed→Qdrant upsert; status/progress DB-তে update করে।
+// at-least-once: সফল/business-fail হলে ack; crash হলে ack হয় না → redeliver → idempotent reprocess।
 public class IngestionBackgroundService(
     IServiceProvider serviceProvider,
     IIngestionQueue queue,
     IEmbeddingProvider embeddingProvider,
     IVectorStore vectorStore,
+    IOptions<IngestionQueueSettings> options,
     ILogger<IngestionBackgroundService> logger)
     : BackgroundService
 {
+    private readonly int _pollDelayMs = options.Value.PollDelayMs;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            var documentId = await queue.DequeueAsync(stoppingToken);
+            IngestionMessage? message;
             try
             {
-                await ProcessAsync(documentId, stoppingToken);
+                message = await queue.ReadAsync(stoppingToken);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Ingestion failed for document {DocumentId}", documentId);
-                await MarkFailedAsync(documentId, ex.Message, stoppingToken);
+                logger.LogError(ex, "Ingestion queue read failed");
+                await Task.Delay(_pollDelayMs, stoppingToken);
+                continue;
             }
+
+            if (message is null)
+            {
+                await Task.Delay(_pollDelayMs, stoppingToken);
+                continue;
+            }
+
+            try
+            {
+                await ProcessAsync(message.DocumentId, stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Ingestion failed for document {DocumentId}", message.DocumentId);
+                await MarkFailedAsync(message.DocumentId, ex.Message, stoppingToken);
+                // business/transient fail → ack (infinite loop এড়াতে); শুধু crash-এ redeliver হয়।
+            }
+
+            await queue.AckAsync(message.MessageId, stoppingToken);
         }
     }
 
@@ -42,6 +67,9 @@ public class IngestionBackgroundService(
         var document = await repository.GetAsync(documentId, cancellationToken);
         if (document is null) return;
 
+        // idempotent: redelivery-তে আগেই শেষ হওয়া doc আবার process করি না।
+        if (document.Status == DocumentStatus.Completed) return;
+
         document.Status = DocumentStatus.Processing;
         var chunks = TextChunker.Chunk(document.Content);
         document.TotalChunks = chunks.Count;
@@ -49,16 +77,18 @@ public class IngestionBackgroundService(
         await repository.SaveChangesAsync(cancellationToken);
 
         var ensured = false;
-        foreach (var chunk in chunks)
+        for (var i = 0; i < chunks.Count; i++)
         {
+            var chunk = chunks[i];
             var vector = await embeddingProvider.EmbedAsync(chunk, EmbeddingTaskType.RetrievalDocument, cancellationToken);
             if (!ensured)
             {
                 await vectorStore.EnsureCollectionAsync(vector.Length, cancellationToken);
                 ensured = true;
             }
+            // deterministic id → reprocess-এ overwrite, duplicate vector নয়।
             await vectorStore.UpsertAsync(
-                [new VectorPoint(Guid.NewGuid().ToString(), vector, chunk, document.FileName)], cancellationToken);
+                [new VectorPoint(IngestionPointId.For(documentId, i), vector, chunk, document.FileName)], cancellationToken);
 
             document.ProcessedChunks++;
             await repository.SaveChangesAsync(cancellationToken);

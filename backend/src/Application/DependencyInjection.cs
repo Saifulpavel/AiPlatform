@@ -1,5 +1,7 @@
 using System.Reflection;
 using AiPlatform.Application.Common.Behaviors;
+using AiPlatform.Application.Common.Interfaces;
+using AiPlatform.Application.Common.Services;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,10 +21,15 @@ public static class DependencyInjection
         {
             cfg.RegisterServicesFromAssembly(assembly);
             cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+            // Validation-এর পরে → শুধু valid request audit হয়
+            cfg.AddOpenBehavior(typeof(AuditBehavior<,>));
         });
 
         // FluentValidation — এই assembly-র সব validator auto-register
         services.AddValidatorsFromAssembly(assembly);
+
+        // conversation memory — chat + stream handler share করে
+        services.AddScoped<IConversationMemory, ConversationMemory>();
 
         return services;
     }

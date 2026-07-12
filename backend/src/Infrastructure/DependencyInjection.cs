@@ -86,6 +86,17 @@ public static class DependencyInjection
         // Evals — RAG grounding eval dataset (app-specific/demo seed)
         services.AddSingleton<IEvalDataset, Evals.RagEvalDataset>();
 
+        // Idempotency — mutating endpoint-এ duplicate request dedup (Redis slot)
+        services.Configure<Idempotency.IdempotencySettings>(configuration.GetSection(Idempotency.IdempotencySettings.SectionName));
+        services.AddSingleton<IIdempotencyStore, Idempotency.RedisIdempotencyStore>();
+
+        // Agent — tool-calling loop + demo tools (feature-toggle, MaxIterations safety)
+        services.AddSingleton(
+            configuration.GetSection(Application.Features.Agent.AgentSettings.SectionName)
+                .Get<Application.Features.Agent.AgentSettings>() ?? new Application.Features.Agent.AgentSettings());
+        services.AddSingleton<ITool, Agent.CurrentTimeTool>();
+        services.AddSingleton<ITool, Agent.KnowledgeBaseSearchTool>();
+
         // RAG retrievers (keyword + embedding + qdrant)
         services.Configure<Rag.QdrantSettings>(configuration.GetSection(Rag.QdrantSettings.SectionName));
         services.AddSingleton<IVectorStore, Rag.QdrantVectorStore>();
@@ -99,9 +110,13 @@ public static class DependencyInjection
         services.AddSingleton<IRetriever, Rag.HybridRetriever>();
         services.AddSingleton<IRetrieverResolver, Rag.RetrieverResolver>();
 
+        // Audit log — mutating command trail (tenant-scoped)
+        services.AddScoped<IAuditLog, Persistence.AuditLog>();
+
         // Document ingestion (upload → background chunk→embed→upsert)
         services.AddScoped<IDocumentRepository, Persistence.DocumentRepository>();
-        services.AddSingleton<IIngestionQueue, Ingestion.InMemoryIngestionQueue>();
+        services.Configure<Ingestion.IngestionQueueSettings>(configuration.GetSection(Ingestion.IngestionQueueSettings.SectionName));
+        services.AddSingleton<IIngestionQueue, Ingestion.RedisStreamIngestionQueue>();
         services.AddHostedService<Ingestion.IngestionBackgroundService>();
 
         return services;

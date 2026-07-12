@@ -1,7 +1,12 @@
 namespace AiPlatform.Application.Common.Models;
 
-// Provider-agnostic chat message। role: "system" | "user" | "assistant"।
-public record ChatMessage(string Role, string Content);
+// Provider-agnostic chat message। role: "system" | "user" | "assistant" | "tool"।
+// tool-calling (agent): assistant message-এ ToolCalls থাকতে পারে; "tool" message-এ ToolCallId (কোন call-এর ফল)।
+public record ChatMessage(
+    string Role,
+    string Content,
+    string? ToolCallId = null,
+    IReadOnlyList<ToolCall>? ToolCalls = null);
 
 // এক provider call-এর ফল (token count observability-র জন্য, default 0 → backward-compatible)।
 public record ChatResult(string Content, string Provider, string Model, int InputTokens = 0, int OutputTokens = 0);

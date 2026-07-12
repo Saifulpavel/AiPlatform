@@ -1,3 +1,4 @@
+using AiPlatform.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +25,13 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
             .UseSqlServer(connectionString)
             .Options;
 
-        return new AppDbContext(options);
+        // design-time-এ কোনো request নেই → system tenant (filter migration-এ irrelevant)।
+        return new AppDbContext(options, new DesignTimeCurrentUser());
+    }
+
+    private sealed class DesignTimeCurrentUser : ICurrentUser
+    {
+        public string? UserId => null;
+        public Guid TenantId => Guid.Empty;
     }
 }
