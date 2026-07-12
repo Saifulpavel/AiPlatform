@@ -12,6 +12,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
 {
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<LlmUsage> LlmUsages => Set<LlmUsage>();
+    public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -27,6 +28,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
                 !d.IsDeleted && (currentUser.TenantId == Guid.Empty || d.TenantId == currentUser.TenantId));
             entity.HasIndex(d => d.CreatedAtUtc);       // newest-first pagination
             entity.HasIndex(d => d.TenantId);
+        });
+
+        builder.Entity<AuditEntry>(entity =>
+        {
+            entity.Property(a => a.Action).HasMaxLength(200).IsRequired();
+            entity.Property(a => a.UserId).HasMaxLength(450);
+            // tenant isolation (Empty = system/background → সব দেখে)
+            entity.HasQueryFilter(a => currentUser.TenantId == Guid.Empty || a.TenantId == currentUser.TenantId);
+            entity.HasIndex(a => new { a.TenantId, a.Id });
         });
 
         builder.Entity<LlmUsage>(entity =>

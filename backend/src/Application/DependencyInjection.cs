@@ -19,6 +19,8 @@ public static class DependencyInjection
         {
             cfg.RegisterServicesFromAssembly(assembly);
             cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+            // Validation-এর পরে → শুধু valid request audit হয়
+            cfg.AddOpenBehavior(typeof(AuditBehavior<,>));
         });
 
         // FluentValidation — এই assembly-র সব validator auto-register

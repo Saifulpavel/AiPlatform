@@ -103,6 +103,9 @@ public static class DependencyInjection
         services.AddSingleton<IRetriever, Rag.HybridRetriever>();
         services.AddSingleton<IRetrieverResolver, Rag.RetrieverResolver>();
 
+        // Audit log — mutating command trail (tenant-scoped)
+        services.AddScoped<IAuditLog, Persistence.AuditLog>();
+
         // Document ingestion (upload → background chunk→embed→upsert)
         services.AddScoped<IDocumentRepository, Persistence.DocumentRepository>();
         services.Configure<Ingestion.IngestionQueueSettings>(configuration.GetSection(Ingestion.IngestionQueueSettings.SectionName));

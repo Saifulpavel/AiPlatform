@@ -221,6 +221,18 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 
 
 ### ============================================================
+### Audit — mutating action trail (tenant-scoped) (Phase 7d-ii)
+### ============================================================
+
+### audit list (upload/delete করার পর entry দেখা যাবে)
+GET {{api}}/audit?page=1&pageSize=20
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 200, { items[], page, pageSize, totalCount, totalPages }
+### item: { id, userId, action ("Document.Upload:faq.txt" / "Document.Delete:<id>"), succeeded, createdAtUtc }
+### 💡 শুধু current tenant-এর entry (query filter)। business-fail হলেও log হয় (succeeded=false)।
+
+
+### ============================================================
 ### Documents — upload → background ingest (chunk→embed→Qdrant) → status
 ### upload করা doc method=qdrant RAG-এ auto চলে আসে।
 ### ============================================================

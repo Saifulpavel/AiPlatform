@@ -35,9 +35,9 @@
   - [x] 7a — idempotency keys: opt-in `[IdempotencyFilter]` + Idempotency-Key header; Redis SET-NX slot (Started/InProgress/Completed) → duplicate mutating request dedup (2xx cache, fail→abandon/retry); document upload-এ প্রয়োগ; user-scoped key। 47 tests pass. Verified build+test.
   - [x] 7b — pagination + soft-delete: generic PagedResult<T>; Document.IsDeleted/DeletedAtUtc + EF global query filter (auto-hide); GET /documents (paged, newest-first, validated 1..100) + DELETE (soft); index on CreatedAtUtc; migration AddDocumentSoftDelete। 54 tests pass. Verified build+test.
   - [x] 7c — async queue → Redis Streams: IIngestionQueue এখন XADD/XREADGROUP/XACK (consumer group); at-least-once — unacked message crash-এ XAUTOCLAIM দিয়ে reclaim; idempotent processing (deterministic Qdrant point-id + Completed হলে skip → redelivery-তে duplicate নয়); per-process consumer name (multi-replica ready); InMemoryChannel queue বাদ। 58 tests pass. Verified build+test.
-  - [~] 7d — multi-tenancy + audit log (split)
+  - [x] 7d — multi-tenancy + audit log
     - [x] 7d-i — multi-tenancy: TenantId on AppUser (per-signup) + JWT claim; ICurrentUser (claim→user/tenant); Document.TenantId + EF global query filter (`!IsDeleted && (tenant==Empty[system] || match)`) → background worker HTTP-context-হীন = Empty = সব দেখে; upload tenant-stamp; migration AddMultiTenancy। 59 tests pass. Verified build+test.
-    - [ ] 7d-ii — audit log (AuditEntry + MediatR pipeline behavior, mutating command log)
+    - [x] 7d-ii — audit log: AuditEntry + IAuditableRequest marker (opt-in, command AuditAction দেয়) + AuditBehavior (MediatR pipeline, Validation-এর পরে, business-fail=succeeded:false); tenant-scoped write/read; GET /audit (paged); Upload/Delete auditable; migration AddAuditLog। 62 tests pass. Verified build+test.
   - [ ] 7e — chat history sidebar (endpoint + frontend)
   - [ ] 7f — admin dashboard (frontend)
   - [ ] 7g — settings / i18n (frontend)
