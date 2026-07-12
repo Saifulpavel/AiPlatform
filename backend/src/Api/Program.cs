@@ -66,6 +66,10 @@ try
 
     builder.Services.AddControllers();
 
+    // MCP server — app-এর tool গুলো Model Context Protocol-এ expose (HTTP transport)।
+    // WithToolsFromAssembly() এই assembly-র [McpServerToolType] scan করে।
+    builder.Services.AddMcpServer().WithHttpTransport().WithToolsFromAssembly();
+
     // ProblemDetails + global exception handler — unexpected error consistent RFC 7807
     builder.Services.AddProblemDetails();
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -143,6 +147,10 @@ try
 
     app.MapControllers();
     app.MapHealthChecks("/health");
+
+    // MCP endpoints (/sse, /messages) — external MCP client-এর জন্য।
+    // ⚠️ demo: unauthenticated; production-এ MCP auth (OAuth) দরকার।
+    app.MapMcp();
 
     // startup-এ migration apply + base role seed (fresh container/CI-তে DB নিজে তৈরি হয়)
     // ponytail: auto-migrate boilerplate/demo-র সুবিধা; কড়া prod-এ controlled migration ভালো

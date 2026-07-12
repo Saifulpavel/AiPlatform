@@ -206,6 +206,17 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 { "message": "hi", "provider": "gemini" }
 ### Expected: 400 — "does not support tool-calling. Use an OpenAI-compatible provider (e.g. groq)."
 
+
+### ============================================================
+### MCP server — tools MCP protocol-এ expose (Phase 7h-ii)
+### ============================================================
+### এটা REST নয় — JSON-RPC over SSE (/sse + /messages)। plain HTTP call দিয়ে টেস্ট নয়।
+### verify: MCP Inspector দিয়ে →
+###   npx @modelcontextprotocol/inspector    (transport: SSE, url: http://localhost:5076/sse)
+###   → tools/list: current_time, search_knowledge_base দেখাবে; call করলে ফল আসবে।
+### অথবা Claude Desktop config-এ SSE server হিসেবে http://localhost:5076/sse যোগ করো।
+### ⚠️ demo: unauthenticated। production-এ MCP auth (OAuth) দরকার।
+
 ### chat streaming (SSE — token আসামাত্র)
 POST {{api}}/chat/stream
 Content-Type: application/json
