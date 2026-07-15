@@ -9,11 +9,17 @@ namespace AiPlatform.Api.IntegrationTests;
 // register → login → me: unit test যা ধরতে পারে না সেটাই এখানে — Identity password policy, EF write,
 // JWT sign→validate round-trip, [Authorize] pipeline, refresh cookie। সব আসল SQL Server + Redis-এ।
 [Collection(nameof(ApiCollection))]
-public class AuthFlowTests(ApiFactory factory)
+public class AuthFlowTests(ApiFactory factory) : IAsyncLifetime
 {
-    private const string Password = "Str0ng!Passw0rd";
+    private const string Password = ApiFactory.TestPassword;
 
     private readonly HttpClient _client = factory.CreateClient();
+
+    // /auth/register-এ 5/min rate limit; TestServer-এ সব request এক "IP" → suite বড় হলে register 429 খেত।
+    // প্রতি test-এর আগে counter পরিষ্কার — নইলে ফেল করত auth নয়, শুধু টেস্টের সংখ্যা বাড়ার কারণে।
+    public Task InitializeAsync() => factory.ResetRateLimitsAsync();
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task Register_Login_Me_RoundTrip()
