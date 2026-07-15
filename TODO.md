@@ -47,5 +47,11 @@
   - [x] 7h — MCP server + tool-agent (🌟 north-star) (split)
     - [x] 7h-i — tool-agent: native function-calling। ITool + IToolCallingProvider (OpenAiCompatible impl: tools request + tool_calls response + tool/assistant message serialize); ChatMessage-এ ToolCallId/ToolCalls; agentic loop handler (LLM→tool_calls→execute→feed back→answer, MaxIterations safety, feature-toggle); demo tools (current_time, search_knowledge_base); POST /agent; usage="agent"। 75 tests pass. Verified build+test.
     - [x] 7h-ii — MCP server: ModelContextProtocol.AspNetCore (HTTP transport); AddMcpServer().WithHttpTransport().WithToolsFromAssembly() + app.MapMcp() (/sse,/messages); [McpServerToolType] AiPlatformMcpTools — current_time + search_knowledge_base, existing ITool-এ bridge (DRY)। build+test green (75)। verify: MCP Inspector/Claude Desktop → http://localhost:5076/sse। ⚠️ demo unauthenticated।
-- [ ] Phase 8 — Quality/DevEx (tests, CI/CD, OTel)
+- [ ] Phase 8 — Quality/DevEx (tests, CI/CD, OTel) (branch `feature/phase-8-quality-devex`)
+  - [x] 8a — integration test infra: নতুন `tests/Api.IntegrationTests` (WebApplicationFactory<Program> + Testcontainers — আসল SQL Server 2022 + Redis container, compose-এর সাথে image tag মেলানো); fake নেই, Program.cs যেমন আছে তেমনই বুট (startup migration সহ); collection fixture → container একবারই ওঠে। ⚠️ শেখা: container config **env var** দিয়ে দিতে হয় (`ConnectionStrings__Default` ইত্যাদি) — Program.cs startup-এ `builder.Configuration` eagerly পড়ে, `ConfigureAppConfiguration` তার পরে চলে → override দেরিতে পৌঁছাত (Jwt sign/validate key mismatch → 401, Redis নীরবে localhost)। 7 test: health, ping(versioned route), 404, register→login→me round-trip (+httpOnly refresh cookie), 401 no-token, 401 wrong-password (no cookie), 400 weak-password। 82 tests pass (75 unit + 7 integration)। Verified build+test.
+  - [ ] 8b — integration tests: documents + authz/validation negatives
+  - [ ] 8c — CI: GitHub Actions (backend test + frontend build/lint)
+  - [ ] 8d — OpenTelemetry traces + metrics (OTLP → dashboard, Serilog correlation)
+  - [ ] 8e — Playwright E2E (login → chat)
+  - [ ] 8f — architecture diagram + run scripts
 - [ ] Phase 9 — Boilerplate packaging (template, conventions, strip demo)
