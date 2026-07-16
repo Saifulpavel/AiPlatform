@@ -4,6 +4,8 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { PublicRoute } from '@/routes/PublicRoute'
 import { AppShell } from '@/components/AppShell'
 import AuthPage from '@/features/auth/AuthPage'
+import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage'
 import { HomePage } from '@/features/home/HomePage'
 import { ChatPage } from '@/features/chat/ChatPage'
 import { RagPage } from '@/features/rag/RagPage'
@@ -19,6 +21,8 @@ export default function App() {
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<AuthPage initialMode="login" />} />
           <Route path="/register" element={<AuthPage initialMode="register" />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
         </Route>
 
         {/* logged-in না হলে /login এ redirect */}

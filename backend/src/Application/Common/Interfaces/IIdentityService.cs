@@ -20,4 +20,7 @@ public interface IIdentityService
 
     // reset-password: token দিয়ে নতুন password সেট।
     Task<Result> ResetPasswordAsync(string email, string token, string newPassword, CancellationToken cancellationToken);
+
+    // external login (Google): email-এ account থাকলে সেটা, নইলে password-হীন নতুন account।
+    Task<Result<AuthUser>> GetOrCreateExternalUserAsync(string email, string fullName, CancellationToken cancellationToken);
 }

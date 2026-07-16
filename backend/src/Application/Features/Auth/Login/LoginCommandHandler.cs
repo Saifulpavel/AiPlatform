@@ -19,10 +19,11 @@ public class LoginCommandHandler(
 
         var user = credentials.Value;
         var accessToken = tokenGenerator.GenerateAccessToken(user);
-        var refreshToken = await refreshTokenService.IssueAsync(user.Id, cancellationToken);
+        var refreshToken = await refreshTokenService.IssueAsync(user.Id, request.RememberMe, cancellationToken);
 
         return new AuthResponse(
             accessToken.Token, accessToken.ExpiresAtUtc,
-            refreshToken.Token, refreshToken.ExpiresAtUtc);
+            refreshToken.Token, refreshToken.ExpiresAtUtc,
+            refreshToken.RememberMe);
     }
 }

@@ -53,7 +53,27 @@ public static class DependencyInjection
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddSingleton<IRefreshTokenService, RefreshTokenService>();
-        services.AddSingleton<IEmailSender, Email.LoggingEmailSender>();
+        // Email — SMTP configure থাকলে আসল email (MailKit), নইলে dev fallback: log-এ ছাপে
+        var smtpSettings = configuration.GetSection(Email.SmtpSettings.SectionName).Get<Email.SmtpSettings>()
+            ?? new Email.SmtpSettings();
+        if (string.IsNullOrEmpty(smtpSettings.Host))
+        {
+            services.AddSingleton<IEmailSender, Email.LoggingEmailSender>();
+        }
+        else
+        {
+            services.AddSingleton(smtpSettings);
+            services.AddSingleton<IEmailSender, Email.SmtpEmailSender>();
+        }
+
+        // Google Sign-In — ID token validation (ClientId env/user-secrets-এ)
+        services.Configure<Auth.GoogleAuthSettings>(configuration.GetSection(Auth.GoogleAuthSettings.SectionName));
+        services.AddSingleton<IGoogleIdTokenValidator, Auth.GoogleIdTokenValidator>();
+
+        // reset-password email link-এর SPA base URL
+        services.AddSingleton(
+            configuration.GetSection(Application.Common.Settings.FrontendSettings.SectionName)
+                .Get<Application.Common.Settings.FrontendSettings>() ?? new Application.Common.Settings.FrontendSettings());
 
         // LLM observability — usage/cost record (non-blocking queue → background persist)
         services.AddSingleton<Observability.UsageQueue>();

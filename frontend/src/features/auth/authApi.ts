@@ -3,6 +3,7 @@ import { baseApi } from '@/features/api/baseApi'
 export interface LoginRequest {
   email: string
   password: string
+  rememberMe: boolean
 }
 export interface LoginResponse {
   accessToken: string
@@ -34,7 +35,24 @@ export const authApi = baseApi.injectEndpoints({
     logout: builder.mutation<void, void>({
       query: () => ({ url: '/auth/logout', method: 'POST' }),
     }),
+    googleLogin: builder.mutation<LoginResponse, { idToken: string }>({
+      query: (body) => ({ url: '/auth/google', method: 'POST', body }),
+    }),
+    forgotPassword: builder.mutation<{ message: string }, { email: string }>({
+      query: (body) => ({ url: '/auth/forgot-password', method: 'POST', body }),
+    }),
+    resetPassword: builder.mutation<{ message: string }, { email: string; token: string; newPassword: string }>({
+      query: (body) => ({ url: '/auth/reset-password', method: 'POST', body }),
+    }),
   }),
 })
 
-export const { useLoginMutation, useRegisterMutation, useMeQuery, useLogoutMutation } = authApi
+export const {
+  useLoginMutation,
+  useRegisterMutation,
+  useMeQuery,
+  useLogoutMutation,
+  useGoogleLoginMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
+} = authApi

@@ -22,12 +22,12 @@ public class RefreshTokenService(IConnectionMultiplexer redis, IOptions<JwtSetti
     private static string FamilyKey(string familyId) => $"family:{familyId}";
 
     private record TokenEntry(string UserId, string FamilyId);
-    private record FamilyEntry(string UserId, string CurrentToken);
+    private record FamilyEntry(string UserId, string CurrentToken, bool RememberMe = false);
 
-    public async Task<RefreshTokenResult> IssueAsync(string userId, CancellationToken cancellationToken)
+    public async Task<RefreshTokenResult> IssueAsync(string userId, bool rememberMe, CancellationToken cancellationToken)
     {
         var familyId = Guid.NewGuid().ToString("N");
-        return await CreateTokenInFamilyAsync(userId, familyId);
+        return await CreateTokenInFamilyAsync(userId, familyId, rememberMe);
     }
 
     public async Task<Result<RefreshRotation>> RotateAsync(string presentedToken, CancellationToken cancellationToken)
@@ -53,8 +53,8 @@ public class RefreshTokenService(IConnectionMultiplexer redis, IOptions<JwtSetti
             return Error.Unauthorized("Auth.RefreshTokenReuse", "Refresh token reuse detected. Session revoked.");
         }
 
-        // বৈধ rotation
-        var rotated = await CreateTokenInFamilyAsync(entry.UserId, entry.FamilyId);
+        // বৈধ rotation — family-র rememberMe নতুন token-এও বয়ে যায়
+        var rotated = await CreateTokenInFamilyAsync(entry.UserId, entry.FamilyId, family.RememberMe);
         return new RefreshRotation(entry.UserId, rotated);
     }
 
@@ -75,16 +75,16 @@ public class RefreshTokenService(IConnectionMultiplexer redis, IOptions<JwtSetti
     }
 
     // family-র current token সেট করে নতুন token বানায় (issue + rotate দুটোই ব্যবহার করে)
-    private async Task<RefreshTokenResult> CreateTokenInFamilyAsync(string userId, string familyId)
+    private async Task<RefreshTokenResult> CreateTokenInFamilyAsync(string userId, string familyId, bool rememberMe)
     {
         var db = redis.GetDatabase();
         var token = GenerateSecureToken();
         var expiresAtUtc = DateTime.UtcNow.Add(Ttl);
 
         await db.StringSetAsync(TokenKey(token), JsonSerializer.Serialize(new TokenEntry(userId, familyId)), Ttl);
-        await db.StringSetAsync(FamilyKey(familyId), JsonSerializer.Serialize(new FamilyEntry(userId, token)), Ttl);
+        await db.StringSetAsync(FamilyKey(familyId), JsonSerializer.Serialize(new FamilyEntry(userId, token, rememberMe)), Ttl);
 
-        return new RefreshTokenResult(token, expiresAtUtc);
+        return new RefreshTokenResult(token, expiresAtUtc, rememberMe);
     }
 
     private static async Task RevokeFamilyAsync(IDatabase db, string familyId, string currentToken)

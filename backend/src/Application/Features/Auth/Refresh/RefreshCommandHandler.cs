@@ -27,6 +27,7 @@ public class RefreshCommandHandler(
 
         return new AuthResponse(
             accessToken.Token, accessToken.ExpiresAtUtc,
-            newRefresh.Token, newRefresh.ExpiresAtUtc);
+            newRefresh.Token, newRefresh.ExpiresAtUtc,
+            newRefresh.RememberMe);
     }
 }

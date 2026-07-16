@@ -3,6 +3,7 @@ using Asp.Versioning;
 using AiPlatform.Api.Common;
 using AiPlatform.Api.Contracts;
 using AiPlatform.Application.Features.Auth.ForgotPassword;
+using AiPlatform.Application.Features.Auth.GoogleLogin;
 using AiPlatform.Application.Features.Auth.Login;
 using AiPlatform.Application.Features.Auth.Logout;
 using AiPlatform.Application.Features.Auth.Refresh;
@@ -36,14 +37,29 @@ public class AuthController(IMediator mediator, IWebHostEnvironment environment)
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new LoginCommand(request.Email, request.Password), cancellationToken);
+        var result = await mediator.Send(
+            new LoginCommand(request.Email, request.Password, request.RememberMe), cancellationToken);
         if (result.IsFailure)
             return ToProblem(result.Error);
 
         var auth = result.Value;
-        SetRefreshCookie(auth.RefreshToken, auth.RefreshTokenExpiresAtUtc);
+        SetRefreshCookie(auth.RefreshToken, auth.RefreshTokenExpiresAtUtc, auth.RememberMe);
 
         // access token শুধু body-তে (frontend memory-তে রাখবে, localStorage নয়)
+        return Ok(new { accessToken = auth.AccessToken, expiresAtUtc = auth.AccessTokenExpiresAtUtc });
+    }
+
+    // Google Sign-In: GIS-এর ID token → যাচাই → নিজস্ব access token + refresh cookie (login-এর মতোই)
+    [RateLimit(10, 60)]
+    [HttpPost("google")]
+    public async Task<IActionResult> GoogleLogin(GoogleLoginRequest request, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GoogleLoginCommand(request.IdToken), cancellationToken);
+        if (result.IsFailure)
+            return ToProblem(result.Error);
+
+        var auth = result.Value;
+        SetRefreshCookie(auth.RefreshToken, auth.RefreshTokenExpiresAtUtc, auth.RememberMe);
         return Ok(new { accessToken = auth.AccessToken, expiresAtUtc = auth.AccessTokenExpiresAtUtc });
     }
 
@@ -82,7 +98,7 @@ public class AuthController(IMediator mediator, IWebHostEnvironment environment)
         }
 
         var auth = result.Value;
-        SetRefreshCookie(auth.RefreshToken, auth.RefreshTokenExpiresAtUtc);
+        SetRefreshCookie(auth.RefreshToken, auth.RefreshTokenExpiresAtUtc, auth.RememberMe);
         return Ok(new { accessToken = auth.AccessToken, expiresAtUtc = auth.AccessTokenExpiresAtUtc });
     }
 
@@ -109,15 +125,17 @@ public class AuthController(IMediator mediator, IWebHostEnvironment environment)
         });
     }
 
-    // refresh token: httpOnly + SameSite=Strict → JS পড়তে পারে না (XSS-safe)
-    private void SetRefreshCookie(string token, DateTime expiresAtUtc)
+    // refresh token: httpOnly + SameSite=Strict → JS পড়তে পারে না (XSS-safe)।
+    // rememberMe=true → persistent cookie (Expires সেট, browser বন্ধেও টেকে);
+    // false → session cookie (Expires নেই, browser বন্ধে মুছে যায়) — tab-এর মধ্যে silent refresh তবু চলে।
+    private void SetRefreshCookie(string token, DateTime expiresAtUtc, bool rememberMe)
     {
         Response.Cookies.Append(RefreshCookieName, token, new CookieOptions
         {
             HttpOnly = true,
             Secure = !environment.IsDevelopment(),   // dev http-এ Secure=false, নইলে cookie drop হয়
             SameSite = SameSiteMode.Strict,
-            Expires = expiresAtUtc,
+            Expires = rememberMe ? expiresAtUtc : null,
             Path = "/api/v1/auth"
         });
     }

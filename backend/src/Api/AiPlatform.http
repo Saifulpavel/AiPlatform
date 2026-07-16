@@ -47,7 +47,14 @@ POST {{api}}/auth/login
 Content-Type: application/json
 
 { "email": "saifulislam.dbz@gmail.com", "password": "Hello@123#" }
-### Expected: 200, { accessToken, expiresAtUtc } + Set-Cookie: refreshToken (httpOnly)
+### Expected: 200, { accessToken, expiresAtUtc } + Set-Cookie: refreshToken (httpOnly, **session** cookie — Expires নেই)
+
+### login — VALID + rememberMe (persistent cookie)
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{ "email": "saifulislam.dbz@gmail.com", "password": "Hello@123#", "rememberMe": true }
+### Expected: 200 + Set-Cookie: refreshToken-এ Expires আছে (৭ দিন) — browser বন্ধেও টেকে
 
 ### login — INVALID (ভুল password)
 POST {{api}}/auth/login
@@ -76,7 +83,8 @@ Content-Type: application/json
 
 { "email": "demo@aiplatform.com" }
 ### Expected: সবসময় 200 generic ("if the email exists...") — email আছে কিনা reveal করে না।
-### reset token dev-এ সার্ভার console/log এ দেখাবে (LoggingEmailSender)।
+### reset **link** dev-এ সার্ভার console/log এ দেখাবে (LoggingEmailSender) —
+### http://localhost:5173/reset-password?email=..&token=.. — খুলে UI দিয়ে reset করা যায়।
 
 ### reset-password — INVALID (ভুল token)
 POST {{api}}/auth/reset-password
@@ -84,6 +92,20 @@ Content-Type: application/json
 
 { "email": "demo@aiplatform.com", "token": "WRONG_TOKEN", "newPassword": "NewPassw0rd!9" }
 # Expected: 400 — "Invalid password reset request." (সঠিক token log থেকে নাও)
+
+### google login — INVALID token (বৈধটা শুধু আসল GIS button থেকে আসে)
+POST {{api}}/auth/google
+Content-Type: application/json
+
+{ "idToken": "not-a-real-google-jwt" }
+# Expected: ClientId configure থাকলে 401 "Invalid Google token"; না থাকলে 400 "Google login is not configured"
+
+### google login — INVALID (খালি token)
+POST {{api}}/auth/google
+Content-Type: application/json
+
+{ "idToken": "" }
+# Expected: 400 FluentValidation — IdToken required
 
 ### logout
 POST {{api}}/auth/logout

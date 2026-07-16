@@ -18,7 +18,10 @@ export function LoginForm({ onSwitch }: { onSwitch: () => void }) {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginValues>({ resolver: zodResolver(loginSchema) })
+  } = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { rememberMe: false },
+  })
   const [login, { isLoading }] = useLoginMutation()
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
@@ -45,7 +48,11 @@ export function LoginForm({ onSwitch }: { onSwitch: () => void }) {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="password">পাসওয়ার্ড</Label>
-          <button type="button" className="text-sm text-muted-foreground hover:text-foreground">
+          <button
+            type="button"
+            onClick={() => navigate('/forgot-password')}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
             পাসওয়ার্ড ভুলে গেছেন?
           </button>
         </div>
@@ -53,8 +60,9 @@ export function LoginForm({ onSwitch }: { onSwitch: () => void }) {
         {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
       </div>
 
+      {/* remember me → refresh cookie persistent হয় (browser বন্ধেও session টেকে) */}
       <label className="flex items-center gap-2 text-sm text-muted-foreground">
-        <input type="checkbox" className="size-4 rounded border-input" /> মনে রাখো
+        <input type="checkbox" className="size-4 rounded border-input" {...register('rememberMe')} /> মনে রাখো
       </label>
 
       <Button type="submit" className="w-full" disabled={isLoading}>

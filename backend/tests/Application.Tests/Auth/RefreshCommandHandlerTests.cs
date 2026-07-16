@@ -30,7 +30,7 @@ public class RefreshCommandHandlerTests
     [Fact]
     public async Task RotationSucceeds_UserExists_ReturnsNewAccessAndRotatedRefresh()
     {
-        var newRefresh = new RefreshTokenResult("rotated-refresh", DateTime.UtcNow.AddDays(7));
+        var newRefresh = new RefreshTokenResult("rotated-refresh", DateTime.UtcNow.AddDays(7), true);
         _refresh.RotateAsync("good", Arg.Any<CancellationToken>())
             .Returns(Result.Success(new RefreshRotation("user-1", newRefresh)));
         var user = new AuthUser("user-1", "user@test.com", "Test User", ["User"]);
@@ -42,13 +42,14 @@ public class RefreshCommandHandlerTests
         Assert.True(result.IsSuccess);
         Assert.Equal("new-access", result.Value.AccessToken);
         Assert.Equal("rotated-refresh", result.Value.RefreshToken);
+        Assert.True(result.Value.RememberMe);   // family-র rememberMe rotate-এও বহাল
     }
 
     [Fact]
     public async Task RotationSucceeds_ButUserGone_ReturnsFailure()
     {
         _refresh.RotateAsync("good", Arg.Any<CancellationToken>())
-            .Returns(Result.Success(new RefreshRotation("ghost", new RefreshTokenResult("r", DateTime.UtcNow.AddDays(7)))));
+            .Returns(Result.Success(new RefreshRotation("ghost", new RefreshTokenResult("r", DateTime.UtcNow.AddDays(7), false))));
         _identity.GetUserByIdAsync("ghost", Arg.Any<CancellationToken>())
             .Returns(Result.Failure<AuthUser>(Error.NotFound("Auth.UserNotFound", "User not found.")));
 

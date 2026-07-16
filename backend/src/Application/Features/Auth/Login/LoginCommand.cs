@@ -4,4 +4,5 @@ using MediatR;
 
 namespace AiPlatform.Application.Features.Auth.Login;
 
-public record LoginCommand(string Email, string Password) : IRequest<Result<AuthResponse>>;
+// RememberMe: true = persistent refresh cookie (browser বন্ধেও টেকে), false = session cookie।
+public record LoginCommand(string Email, string Password, bool RememberMe = false) : IRequest<Result<AuthResponse>>;

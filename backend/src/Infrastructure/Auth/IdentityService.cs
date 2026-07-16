@@ -81,4 +81,35 @@ public class IdentityService(
 
         return Result.Success();
     }
+
+    public async Task<Result<AuthUser>> GetOrCreateExternalUserAsync(
+        string email, string fullName, CancellationToken cancellationToken)
+    {
+        var existing = await userManager.FindByEmailAsync(email);
+        if (existing is not null)
+        {
+            var existingRoles = await userManager.GetRolesAsync(existing);
+            return new AuthUser(existing.Id, existing.Email!, existing.FullName, existingRoles.ToList(), existing.TenantId);
+        }
+
+        // password-হীন account — Google-ই credential; email Google verify করেছে
+        var user = new AppUser
+        {
+            UserName = email,
+            Email = email,
+            FullName = fullName,
+            TenantId = Guid.NewGuid(),
+            EmailConfirmed = true
+        };
+        var result = await userManager.CreateAsync(user);
+        if (!result.Succeeded)
+        {
+            var description = string.Join("; ", result.Errors.Select(e => e.Description));
+            return Error.Validation("Auth.ExternalLogin", description);
+        }
+
+        await userManager.AddToRoleAsync(user, DefaultRole);
+        var roles = await userManager.GetRolesAsync(user);
+        return new AuthUser(user.Id, user.Email!, user.FullName, roles.ToList(), user.TenantId);
+    }
 }

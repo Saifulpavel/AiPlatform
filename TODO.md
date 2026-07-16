@@ -73,5 +73,10 @@
   - সব chart `isAnimationActive={false}` — rAF-throttled env-এ animation-pending-এ আটকায় না
   - e2e spec: user name এখন sidebar-এ → `banner`→`complementary` scope
   - Verified: build+lint green, Playwright e2e 3/3 (আসল Chromium), real-browser screenshot light/dark/mobile। ⚠️ শেখা: Claude Browser pane-এ rAF fire হয় না — animation/screenshot ওখানে verify হবে না, Playwright-ই পথ। bundle এখন 325KB gz (recharts+framer) — code-split পরে দরকার হলে।
+- [x] **Auth ৩টা gap (user-reported)** — remember me + forgot password + Google login:
+  - **Remember me**: LoginCommand-এ RememberMe → Redis family entry-তে জমা (rotation-এও টেকে) → cookie: checked=persistent (Expires=৭দিন), unchecked=session (browser বন্ধে যায়)। e2e-তে cookie expires -1 vs future epoch প্রমাণ।
+  - **Forgot/reset password**: email body এখন আসল reset link (`Frontend:BaseUrl` config + URL-encoded token); নতুন `/forgot-password` (generic success, enumeration-safe) + `/reset-password` page (query email+token, policy+confirm)। আসল token-এ full flow e2e প্রমাণ: reset → নতুন password login → পুরনোটা reject।
+  - **Google login**: GIS ID token → `POST /auth/google` → `GoogleIdTokenValidator` (Google.Apis.Auth, audience+email_verified check) → `GetOrCreateExternalUserAsync` (password-হীন account, নিজস্ব tenant) → নিজস্ব JWT+refresh cookie (সবসময় rememberMe)। Frontend: GIS button (client id `VITE_GOOGLE_CLIENT_ID`), না থাকলে placeholder। ⚠️ চলাতে Google Cloud Console-এ OAuth Client ID বানিয়ে দুই জায়গায় সেট করতে হবে (frontend env + backend `Authentication__Google__ClientId`)।
+  - Verified: 79 unit (4 নতুন) + e2e 6/6 + real-token reset flow + `/auth/google` negative (400 not-configured / validation)। `.http` kit updated।
 - [ ] **ভাঙা LLM provider ঠিক করা** — cerebras / openrouter / github (Phase 2 থেকে ঝুলন্ত)।
 - [ ] **Local LLM provider (Ollama)** — north star-এর "hosted→local swap" প্রমাণ; নতুন `IChatProvider`/`IEmbeddingProvider` impl, handler অক্ষত।

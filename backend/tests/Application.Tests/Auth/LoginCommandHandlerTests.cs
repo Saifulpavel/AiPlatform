@@ -22,14 +22,33 @@ public class LoginCommandHandlerTests
         _identity.ValidateCredentialsAsync("user@test.com", "pw", Arg.Any<CancellationToken>())
             .Returns(Result.Success(user));
         _jwt.GenerateAccessToken(user).Returns(new AccessToken("access-jwt", DateTime.UtcNow.AddMinutes(15)));
-        _refresh.IssueAsync("user-1", Arg.Any<CancellationToken>())
-            .Returns(new RefreshTokenResult("refresh-token", DateTime.UtcNow.AddDays(7)));
+        _refresh.IssueAsync("user-1", false, Arg.Any<CancellationToken>())
+            .Returns(new RefreshTokenResult("refresh-token", DateTime.UtcNow.AddDays(7), false));
 
         var result = await CreateSut().Handle(new LoginCommand("user@test.com", "pw"), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Equal("access-jwt", result.Value.AccessToken);
         Assert.Equal("refresh-token", result.Value.RefreshToken);
+        Assert.False(result.Value.RememberMe);
+    }
+
+    [Fact]
+    public async Task RememberMe_FlowsThroughToTokenIssueAndResponse()
+    {
+        var user = new AuthUser("user-1", "user@test.com", "Test User", ["User"]);
+        _identity.ValidateCredentialsAsync("user@test.com", "pw", Arg.Any<CancellationToken>())
+            .Returns(Result.Success(user));
+        _jwt.GenerateAccessToken(user).Returns(new AccessToken("access-jwt", DateTime.UtcNow.AddMinutes(15)));
+        _refresh.IssueAsync("user-1", true, Arg.Any<CancellationToken>())
+            .Returns(new RefreshTokenResult("refresh-token", DateTime.UtcNow.AddDays(7), true));
+
+        var result = await CreateSut().Handle(
+            new LoginCommand("user@test.com", "pw", RememberMe: true), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Value.RememberMe);
+        await _refresh.Received(1).IssueAsync("user-1", true, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -43,6 +62,6 @@ public class LoginCommandHandlerTests
         Assert.True(result.IsFailure);
         Assert.Equal(ErrorType.Unauthorized, result.Error.Type);
         _jwt.DidNotReceive().GenerateAccessToken(Arg.Any<AuthUser>());
-        await _refresh.DidNotReceive().IssueAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _refresh.DidNotReceive().IssueAsync(Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
     }
 }
