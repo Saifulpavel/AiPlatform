@@ -54,7 +54,7 @@ backend/
 frontend/
   src/features/       — auth, chat, rag, documents, dashboard, settings (backend আয়নায়)
   e2e/                — Playwright specs
-docs/                 — architecture, ci-guide, troubleshooting, docker, secrets
+docs/                 — architecture, auth-guide, ci-guide, troubleshooting, docker, secrets
 scripts/              — dev.ps1, test.ps1
 ```
 
@@ -68,5 +68,6 @@ Architecture diagram + request flows: [docs/architecture.md](docs/architecture.m
 ## Config & secrets
 
 - Local: `dotnet user-secrets` (API keys, connection strings) — **কখনো কোডে/appsettings-এ নয়**। গাইড: [docs/user-secrets-guide.md](docs/user-secrets-guide.md)
+- Auth setup/টেস্ট (Google login, remember me, reset email/SMTP): [docs/auth-guide.md](docs/auth-guide.md)
 - Copy `.env.example` → `.env` (docker compose + frontend values)
 - API test-kit: [backend/src/Api/AiPlatform.http](backend/src/Api/AiPlatform.http) — প্রতিটা endpoint-এর valid/invalid payload + expected response
