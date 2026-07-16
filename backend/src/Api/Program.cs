@@ -21,11 +21,17 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    // Serilog — appsettings থেকে config পড়ে (structured + correlation, Phase 0 বেসিক)
+    // default console provider সরাও — নইলে writeToProviders (নিচে) ওটাতেও লেখে আর প্রতি log দুবার ছাপে।
+    // এর পরে যোগ হওয়া provider (Phase 8d-এর OpenTelemetry) টিকে থাকে।
+    builder.Logging.ClearProviders();
+
+    // Serilog — appsettings থেকে config পড়ে (structured + correlation, Phase 0 বেসিক)।
+    // writeToProviders: true → Serilog অন্য ILogger provider-দেরও লেখে (Phase 8d-এ OpenTelemetry);
+    // default false মানে OTel logging provider নীরবে উপেক্ষিত হতো, log আর trace জোড়া লাগত না।
     builder.Host.UseSerilog((context, services, config) => config
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
-        .Enrich.FromLogContext());
+        .Enrich.FromLogContext(), writeToProviders: true);
 
     // graceful shutdown — SIGTERM এ in-flight request শেষ করার সময় দেয় (container stop/replica rollout)
     builder.Host.ConfigureHostOptions(options => options.ShutdownTimeout = TimeSpan.FromSeconds(30));
@@ -33,6 +39,9 @@ try
     // Layer wiring
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
+
+    // OpenTelemetry — traces + metrics + logs → OTLP (feature-toggle: Otel:Enabled)
+    builder.Services.AddObservability(builder.Configuration);
 
     // current user/tenant (claim → ICurrentUser); DbContext tenant filter + upload-এ লাগে
     builder.Services.AddHttpContextAccessor();
