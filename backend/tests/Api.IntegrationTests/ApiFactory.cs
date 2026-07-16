@@ -50,6 +50,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         Environment.SetEnvironmentVariable("ConnectionStrings__Default", _sql.GetConnectionString());
         Environment.SetEnvironmentVariable("Redis__Connection", _redis.GetConnectionString());
         Environment.SetEnvironmentVariable("Jwt__SecretKey", TestJwtSecret);
+
+        // টেস্টে কোনো OTLP collector নেই — চালু থাকলে exporter প্রতি export-এ retry করে log ভাসাত
+        Environment.SetEnvironmentVariable("Otel__Enabled", "false");
     }
 
     // register+login করা client — যেসব test-এর বিষয় auth নয়, সেগুলোর জন্য।

@@ -16,12 +16,16 @@ x-api-common: &api-common
     Redis__Connection: "redis:6379"
     Qdrant__Url: "http://qdrant:6333"
     Jwt__SecretKey: "${JWT_SECRET}"
+    # OTLP-র standard env var — exporter নিজেই পড়ে (Phase 8d)
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
   depends_on:
     sqlserver:
       condition: service_healthy
     redis:
       condition: service_healthy
     qdrant:
+      condition: service_started
+    aspire-dashboard:
       condition: service_started
   restart: unless-stopped
 
@@ -63,6 +67,19 @@ services:
       - "6334:6334"   # gRPC
     volumes:
       - qdrant-data:/qdrant/storage
+
+  # OpenTelemetry backend (Phase 8d) — trace/metric/log দেখার UI: http://localhost:18888
+  # ponytail: Aspire dashboard = এক container, শূন্য config। Grafana+Tempo+Prometheus একই জিনিসের
+  # জন্য ৩ service + scrape/datasource config চায়; দরকার হলে পরে বদলানো যাবে — app শুধু OTLP জানে।
+  # ⚠️ data মেমোরিতে, restart-এ মুছে যায় (dev-এ যথেষ্ট; prod-এ persistent backend লাগবে)।
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
+    container_name: aiplatform-aspire-dashboard
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"   # ⚠️ dev only — login ছাড়া UI খোলে
+    ports:
+      - "18888:18888"   # UI
+      - "4317:18889"    # OTLP gRPC — host-এ চলা API এখানে পাঠায় (OTel-এর standard port)
 
   # stateless API — দুই replica (state Redis/SQL-এ, তাই যেকোনো replica যেকোনো request নিতে পারে)
   # profile "full" — default `up` এ ওঠে না (local dev-এ API VS/dotnet থেকে চালাও)।
