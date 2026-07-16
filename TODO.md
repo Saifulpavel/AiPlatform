@@ -79,4 +79,4 @@
   - **Google login**: GIS ID token → `POST /auth/google` → `GoogleIdTokenValidator` (Google.Apis.Auth, audience+email_verified check) → `GetOrCreateExternalUserAsync` (password-হীন account, নিজস্ব tenant) → নিজস্ব JWT+refresh cookie (সবসময় rememberMe)। Frontend: GIS button (client id `VITE_GOOGLE_CLIENT_ID`), না থাকলে placeholder। ⚠️ চলাতে Google Cloud Console-এ OAuth Client ID বানিয়ে দুই জায়গায় সেট করতে হবে (frontend env + backend `Authentication__Google__ClientId`)।
   - Verified: 79 unit (4 নতুন) + e2e 6/6 + real-token reset flow + `/auth/google` negative (400 not-configured / validation)। `.http` kit updated।
 - [ ] **ভাঙা LLM provider ঠিক করা** — cerebras / openrouter / github (Phase 2 থেকে ঝুলন্ত)।
-- [ ] **Local LLM provider (Ollama)** — north star-এর "hosted→local swap" প্রমাণ; নতুন `IChatProvider`/`IEmbeddingProvider` impl, handler অক্ষত।
+- [ ] **Local LLM provider (Ollama)** — north star-এর "hosted→local swap" প্রমাণ; নতুন `IChatProvider`/`IEmbeddingProvider` impl, handler অক্ষত। **পূর্ণ plan: `docs/ollama-plan.md`** (setup → model → Modelfile → LoRA fine-tune path → integration ধাপ A-D)। ⏭️ এটাই next।
