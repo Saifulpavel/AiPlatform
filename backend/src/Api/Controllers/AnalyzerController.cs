@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AiPlatform.Api.Controllers;
 
+// ⚠️ APP-SPECIFIC DEMO — Analyzer feature-এর endpoint; strip করলে এটাও মুছবে (docs/template-guide.md)।
 [Authorize]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/analyze")]

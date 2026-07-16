@@ -6,6 +6,9 @@ using MediatR;
 
 namespace AiPlatform.Application.Features.Analyzer;
 
+// ⚠️ APP-SPECIFIC DEMO FEATURE — customer-message analyzer। structured-output (LLM→typed JSON)
+// pattern-এর উদাহরণ; নতুন project-এ নিজের schema/prompt দিয়ে বদলাও বা পুরো Analyzer folder মুছে ফেলো
+// (সাথে AnalyzerController + tests) — docs/template-guide.md-র strip তালিকা দেখো।
 public class AnalyzeCommandHandler(IChatProviderResolver resolver)
     : IRequestHandler<AnalyzeCommand, Result<MessageAnalysis>>
 {
