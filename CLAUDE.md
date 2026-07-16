@@ -14,9 +14,13 @@
 ## Run
 - Build: `dotnet build backend/AiPlatform.slnx`
 - API: `dotnet run --project backend/src/Api` → http://localhost:5076 (swagger `/swagger`, health `/health`)
-- Test: `dotnet test backend/AiPlatform.slnx`
+- Test: `dotnet test backend/AiPlatform.slnx` (unit + integration; integration-এ Docker লাগে — Testcontainers)
+- E2E: `cd frontend && npm run e2e` (Playwright; stack নিজে তোলে)
 - Frontend: `cd frontend && npm run dev` → http://localhost:5173
 - EF migration: `dotnet ef ... --project backend/src/Infrastructure --startup-project backend/src/Api`
+- সব একসাথে: `.\scripts\dev.ps1` (চালু) / `.\scripts\test.ps1 [-E2E]` (টেস্ট)
+- Telemetry: Aspire dashboard http://localhost:18888 (toggle `Otel:Enabled`)
+- Env/machine সমস্যা (port 1433, locked exe…): আগে `docs/troubleshooting.md` দেখো; নতুন env hack বেরোলে ওখানেই entry যোগ করো
 
 ## Conventions
 - প্রতিটা capability = আলাদা, স্বাধীনভাবে-testable feature (`Application/Features/<Name>`)।
@@ -52,4 +56,4 @@
 - ছোট increment, প্রতি phase checkpoint-এ থেমে user-এর "go" নাও।
 
 ## Plan
-পূর্ণ roadmap: `PLAN.md`. এখন শেষ: **Phase 0 (foundation)**.
+পূর্ণ roadmap: `PLAN.md`, অগ্রগতি: `TODO.md`. এখন শেষ: **Phase 8 (Quality/DevEx)** — বাকি Phase 9 (boilerplate packaging).
