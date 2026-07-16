@@ -64,5 +64,7 @@
 
 - [ ] **NuGet template pack** — template-টা `.nupkg` বানিয়ে version দেওয়া (`AiPlatform.Templates::1.0.0`); repo এগোলেও published version জমাট থাকে। টিমে/publicly বিলি করার standard পথ। ধাপ: template pack csproj (`<PackageType>Template</PackageType>`, content = repo) → `dotnet pack` → লোকাল টেস্ট (`dotnet new install <nupkg>`) → nuget.org বা private feed-এ push। টিমকে দেওয়ার দরকার হলেই করব — একা ব্যবহারে live-repo install যথেষ্ট।
 - [ ] **Template-rot CI job** — main merge/workflow_dispatch-এ: `dotnet new install .` → instantiate → generated project-এ `dotnet test` + leftover-`AiPlatform` grep → লাল হলে বোঝা যায় কেউ template-এর ৪ নিয়ম ভেঙেছে (নাম-casing, demo-mark, exclude, guids)।
+- [x] **In-app navigation ঠিক করা** — AppShell header-এ nav (Chat/RAG/Documents/Dashboard, NavLink active highlight) + brand→home link; browser back নির্ভরতা শেষ। mobile-এ nav hidden (`md:flex`), brand→home escape — hamburger পরে দরকার হলে। Verified live (click-through + build+lint)।
+- [ ] **Dashboard-এ chart/graph** — 7f-এর stat card + table-এর পাশাপাশি visual chart (যেমন cost/token by-model bar chart, usage-over-time line); Recharts (shadcn chart-ও Recharts-ভিত্তিক) দিয়ে।
 - [ ] **ভাঙা LLM provider ঠিক করা** — cerebras / openrouter / github (Phase 2 থেকে ঝুলন্ত)।
 - [ ] **Local LLM provider (Ollama)** — north star-এর "hosted→local swap" প্রমাণ; নতুন `IChatProvider`/`IEmbeddingProvider` impl, handler অক্ষত।
