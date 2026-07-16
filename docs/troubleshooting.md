@@ -11,6 +11,7 @@
 ## সূচি
 1. [SQL Server port 1433 — "forbidden by its access permissions"](#১-sql-server-port-1433--forbidden-by-its-access-permissions)
 2. [Build "file locked by AiPlatform.Api" — চলন্ত API না মরা](#২-build-file-locked-by-aiplatformapi--চলন্ত-api-না-মরা)
+3. [Claude Browser pane-এ animation/chart "ভাঙা" — rAF fire হয় না](#৩-claude-browser-pane-এ-animationchart-ভাঙা--raf-fire-হয়-না)
 
 ---
 
@@ -86,6 +87,23 @@ Get-Process -Name "AiPlatform.Api" -ErrorAction SilentlyContinue
 **কেন কাজ করে:** `Stop-Process -Force` Windows API দিয়ে সরাসরি process টার্মিনেট করে (bash signal-এর উপর নির্ভর করে না), তাই `.exe` lock ছাড়ে।
 
 **এককালীন?** না — যতবার background API চালিয়ে rebuild করবে ততবার লাগতে পারে। অভ্যাস: rebuild-এর আগে উপরের Stop-Process চালাও, অথবা আগের `dotnet run` টার্মিনাল Ctrl+C দিয়ে বন্ধ করো।
+
+---
+
+## ৩. Claude Browser pane-এ animation/chart "ভাঙা" — rAF fire হয় না
+
+**লক্ষণ:** Claude Code-এর Browser pane-এ app খুললে — recharts bar/donut আঁকা হয় না (খালি `<g>`), framer-motion entrance animation `opacity: 0`-তে আটকে থাকে, `computer{action:"screenshot"}` ৩০ সেকেন্ডে timeout। Console-এ কোনো error নেই।
+
+**আসল কারণ:** ওই pane-এর renderer-এ `requestAnimationFrame` callback **কখনোই চলে না** (প্রমাণ: rAF-ভিত্তিক counter অনন্তকাল ঝোলে)। rAF-নির্ভর সবকিছু — chart entry animation, framer-motion, screenshot compositor — তাই "ভাঙা" দেখায়। **কোডের bug নয়, pane-এর artifact।**
+
+**ফিক্স / করণীয়:**
+- Animation/visual verify ওই pane-এ **কোরো না** — Playwright (আসল Chromium) দিয়ে করো: e2e test বা এক-অফ screenshot script (`chromium.launch()` → `page.screenshot()`)।
+- DOM/text/network verify pane-এ ঠিকই চলে (`read_page`, `javascript_tool`, `read_network_requests`)।
+- Chart-এ `isAnimationActive={false}` রাখা ভালো এমনিতেও — rAF-throttled environment-এ (background tab) chart animation-pending-এ আটকে থাকে না।
+
+**কেন কাজ করে:** Playwright-এর Chromium মাথা-সহ/headless দুই মোডেই rAF চালায়; pane-এর renderer কোনো কারণে compositor tick পায় না।
+
+**এককালীন?** না — Browser pane দিয়ে animation verify করতে গেলেই আবার পড়বে। মনে রাখো: pane = DOM যাচাই, Playwright = চোখের যাচাই।
 
 ---
 

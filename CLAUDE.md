@@ -3,7 +3,16 @@
 ## Stack
 - Backend: .NET 10 Web API, Clean Architecture (Api → Application → Domain; Infrastructure → Application/Domain).
 - CQRS + MediatR, FluentValidation, Serilog, ProblemDetails, Swagger, API versioning (`/api/v{n}`).
-- Frontend (Phase 4+): React + TS + Vite, Tailwind + shadcn/ui, react-hook-form + zod, framer-motion, sonner. **State/data: Redux Toolkit + RTK Query** (server-state + client-state). Silent refresh via RTK Query custom baseQuery (re-auth wrapper); access token in memory (Redux slice), never localStorage.
+- Frontend (Phase 4+): React + TS + Vite, Tailwind + shadcn/ui, react-hook-form + zod, framer-motion, sonner, recharts. **State/data: Redux Toolkit + RTK Query** (server-state + client-state). Silent refresh via RTK Query custom baseQuery (re-auth wrapper); access token in memory (Redux slice), never localStorage.
+
+## Frontend design system (premium overhaul, 2026-07)
+- **Theme**: violet/blue soft-gradient tokens `index.css`-এ (light+dark আলাদা মান); radius 1rem = rounded-2xl default।
+- **Glassmorphism**: সব shadcn `Card` স্বয়ংক্রিয়ভাবে glass — `[data-slot=card]` global rule (translucent `--card` + backdrop-blur)। নতুন surface-এ আলাদা glass class লাগে না, Card ব্যবহার করলেই হয়।
+- **Layout**: `AppShell` = glass sidebar (lg+, icon nav + active pill + user footer) / mobile header+nav strip; `AnimatedBackground` = gradient mesh + particles (CSS-only, reduced-motion-safe) — AppShell-এ একবারই রাখা।
+- **Motion**: page transition AppShell-এ (AnimatePresence, pathname key); card entrance = ছোট stagger fade+rise। নতুন page-এ আলাদা transition লাগবে না।
+- **Charts (recharts)**: রং সবসময় `var(--chart-1..4)` (dataviz-validated, light+dark আলাদা) — নতুন hex বানাবে না; সব chart-এ `isAnimationActive={false}` (rAF-throttled env-এ আটকায়, troubleshooting §৩); chart-এর পাশে table/legend রাখো (accessibility relief)।
+- **Loading**: spinner নয় — `ui/skeleton.tsx` দিয়ে layout-ধরে-রাখা skeleton।
+- নতুন UI বানালে এই নিয়মগুলোই ধরো — নিজে নতুন style উদ্ভাবন করবে না।
 - Data: SQL Server + EF Core, Redis, Qdrant. Solution file is `AiPlatform.slnx` (not .sln).
 
 ## Repo structure (from Phase 4)

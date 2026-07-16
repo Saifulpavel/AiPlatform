@@ -64,7 +64,14 @@
 
 - [ ] **NuGet template pack** — template-টা `.nupkg` বানিয়ে version দেওয়া (`AiPlatform.Templates::1.0.0`); repo এগোলেও published version জমাট থাকে। টিমে/publicly বিলি করার standard পথ। ধাপ: template pack csproj (`<PackageType>Template</PackageType>`, content = repo) → `dotnet pack` → লোকাল টেস্ট (`dotnet new install <nupkg>`) → nuget.org বা private feed-এ push। টিমকে দেওয়ার দরকার হলেই করব — একা ব্যবহারে live-repo install যথেষ্ট।
 - [ ] **Template-rot CI job** — main merge/workflow_dispatch-এ: `dotnet new install .` → instantiate → generated project-এ `dotnet test` + leftover-`AiPlatform` grep → লাল হলে বোঝা যায় কেউ template-এর ৪ নিয়ম ভেঙেছে (নাম-casing, demo-mark, exclude, guids)।
-- [x] **In-app navigation ঠিক করা** — AppShell header-এ nav (Chat/RAG/Documents/Dashboard, NavLink active highlight) + brand→home link; browser back নির্ভরতা শেষ। mobile-এ nav hidden (`md:flex`), brand→home escape — hamburger পরে দরকার হলে। Verified live (click-through + build+lint)।
-- [ ] **Dashboard-এ chart/graph** — 7f-এর stat card + table-এর পাশাপাশি visual chart (যেমন cost/token by-model bar chart, usage-over-time line); Recharts (shadcn chart-ও Recharts-ভিত্তিক) দিয়ে।
+- [x] **In-app navigation ঠিক করা** — প্রথমে header nav (commit `590d909`), পরে premium redesign-এ glass sidebar-এ উঠে গেছে (নিচের entry)।
+- [x] **Dashboard chart + premium UI overhaul** — এক পাসে দুটো:
+  - theme: violet/blue soft-gradient design tokens (light+dark), radius 1rem (rounded-2xl), glass card (`[data-slot=card]` backdrop-blur এক নিয়মে সব Card), `--chart-1..4` dataviz-validator pass (light ΔE 49.3 / dark 39.3)
+  - `AnimatedBackground` — CSS gradient mesh (৩ blob drift) + ১২ deterministic particle, reduced-motion-এ বন্ধ
+  - `AppShell` — glass sidebar (lucide icon nav + active pill + user footer avatar/initials), mobile header+nav strip (<lg), framer page transition (AnimatePresence, pathname key)
+  - Dashboard — KPI card ×4 (gradient icon tile) + cost donut (center total + legend list) + tokens grouped bar + glass table + skeleton loading (usage+evals); HomePage gradient tiles + stagger entrance
+  - সব chart `isAnimationActive={false}` — rAF-throttled env-এ animation-pending-এ আটকায় না
+  - e2e spec: user name এখন sidebar-এ → `banner`→`complementary` scope
+  - Verified: build+lint green, Playwright e2e 3/3 (আসল Chromium), real-browser screenshot light/dark/mobile। ⚠️ শেখা: Claude Browser pane-এ rAF fire হয় না — animation/screenshot ওখানে verify হবে না, Playwright-ই পথ। bundle এখন 325KB gz (recharts+framer) — code-split পরে দরকার হলে।
 - [ ] **ভাঙা LLM provider ঠিক করা** — cerebras / openrouter / github (Phase 2 থেকে ঝুলন্ত)।
 - [ ] **Local LLM provider (Ollama)** — north star-এর "hosted→local swap" প্রমাণ; নতুন `IChatProvider`/`IEmbeddingProvider` impl, handler অক্ষত।

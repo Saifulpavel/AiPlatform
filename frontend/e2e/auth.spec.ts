@@ -25,18 +25,18 @@ test('register → login → silent refresh survives reload → logout', async (
   await page.locator('#password').fill(password)
   await page.getByRole('button', { name: 'লগইন', exact: true }).click()
 
-  // home-এ পৌঁছে shell header-এ user-এর নাম — মানে access token কাজ করছে (/me সফল)।
-  // banner-scoped: "E2E User" heading-এও আছে ("স্বাগতম, ..."), plain getByText দুটোতে মিলে
-  // strict mode violation দেয়।
+  // home-এ পৌঁছে shell sidebar-এ user-এর নাম — মানে access token কাজ করছে (/me সফল)।
+  // sidebar (<aside> = complementary role)-scoped: "E2E User" heading-এও আছে ("স্বাগতম, ..."),
+  // plain getByText দুটোতে মিলে strict mode violation দেয়।
   await page.waitForURL('/')
-  await expect(page.getByRole('banner').getByText('E2E User')).toBeVisible()
+  await expect(page.getByRole('complementary').getByText('E2E User')).toBeVisible()
 
   // --- silent refresh: পুরো E2E-র সবচেয়ে দামি assert ---
   // access token শুধু মেমোরিতে (Redux) — reload-এ হারায়। টিকে থাকার একমাত্র পথ:
   // httpOnly refresh cookie → AppBootstrap-এর /auth/refresh → নতুন token। এই chain-এর
   // যেকোনো অংশ ভাঙলে (cookie attribute, CORS credentials, bootstrap লজিক) ইউজার ছিটকে যাবে।
   await page.reload()
-  await expect(page.getByRole('banner').getByText('E2E User')).toBeVisible()
+  await expect(page.getByRole('complementary').getByText('E2E User')).toBeVisible()
   await expect(page).toHaveURL('/')
 
   // --- logout ---
