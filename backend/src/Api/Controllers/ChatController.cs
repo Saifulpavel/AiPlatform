@@ -21,7 +21,7 @@ public class ChatController(IMediator mediator) : ApiControllerBase
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var result = await mediator.Send(
-            new ChatCommand(request.Message, request.Provider, request.ConversationId, userId), cancellationToken);
+            new ChatCommand(request.Message, request.Provider, request.Model, request.ConversationId, userId), cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : ToProblem(result.Error);
     }
 
@@ -59,7 +59,7 @@ public class ChatController(IMediator mediator) : ApiControllerBase
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var stream = mediator.CreateStream(
-                new ChatStreamCommand(request.Message, request.Provider, request.ConversationId, userId), cancellationToken);
+                new ChatStreamCommand(request.Message, request.Provider, request.Model, request.ConversationId, userId), cancellationToken);
 
             await foreach (var token in stream)
             {

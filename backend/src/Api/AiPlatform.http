@@ -113,7 +113,7 @@ POST {{api}}/auth/logout
 
 
 ### ============================================================
-### Chat — multi-provider  (provider: gemini | groq | mistral working)
+### Chat — multi-provider  (provider: gemini | groq | mistral | ollama working)
 ### ============================================================
 
 ### chat — VALID
@@ -123,6 +123,28 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 
 { "message": "২ + ২ = কত? এক লাইনে বলো।", "provider": "groq" }
 ### Expected: 200, { answer, provider, model }
+
+### llm — installed Ollama model list (model-picker dropdown)
+GET {{api}}/llm/models
+Authorization: Bearer {{login.response.body.$.accessToken}}
+### Expected: 200, ["gemma3:4b","qwen3:4b"] — Ollama /api/tags, embedding model বাদ।
+### Ollama না চললে / configure না থাকলে খালি [] (feature ভাঙে না)।
+
+### chat — LOCAL (ollama, config-এর default model = gemma3:4b)
+POST {{api}}/chat
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "তুমি কে? এক লাইনে বলো।", "provider": "ollama" }
+### Expected: 200, provider="ollama", model="gemma3:4b" (CPU-তে ধীর)। key লাগে না।
+
+### chat — LOCAL + model override (model-picker qwen3:4b বাছলে)
+POST {{api}}/chat
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "hi in one word", "provider": "ollama", "model": "qwen3:4b" }
+### Expected: 200, model="qwen3:4b" (override respected)। model বাদ দিলে config default।
 
 ### chat — AUTO route (provider বাদ) → সহজ প্রশ্ন = cheap (gemini)
 POST {{api}}/chat

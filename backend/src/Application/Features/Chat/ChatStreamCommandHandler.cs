@@ -26,7 +26,7 @@ public class ChatStreamCommandHandler(
             message = guard.SafeInput;
         }
 
-        var provider = resolver.Resolve(request.Provider);
+        var provider = resolver.Resolve(request.Provider, request.Model);
         if (provider is null)
         {
             var requested = string.IsNullOrWhiteSpace(request.Provider) ? "default" : request.Provider;

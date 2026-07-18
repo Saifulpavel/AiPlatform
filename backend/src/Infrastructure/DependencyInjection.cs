@@ -89,6 +89,7 @@ public static class DependencyInjection
         services.Configure<Llm.LlmSettings>(configuration.GetSection(Llm.LlmSettings.SectionName));
         services.AddHttpClient("llm");
         services.AddSingleton<IChatProviderResolver, Llm.ChatProviderResolver>();
+        services.AddSingleton<ILocalModelCatalog, Llm.OllamaModelCatalog>();
         services.AddSingleton<IEmbeddingProvider, Llm.GeminiEmbeddingProvider>();
 
         // Model routing — auto mode-এ complexity দেখে cheap/strong provider select

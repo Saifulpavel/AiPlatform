@@ -110,7 +110,7 @@ public class ChatCommandHandlerTests
         _resolver.Resolve("gemini").Returns(provider);
 
         var result = await new ChatCommandHandler(_resolver, _usage, _embeddings, _cache, _router, _guard, _memory)
-            .Handle(new ChatCommand("next?", "gemini", "c1", "u1"), CancellationToken.None);
+            .Handle(new ChatCommand("next?", "gemini", ConversationId: "c1", UserId: "u1"), CancellationToken.None);
 
         Assert.Equal("c1", result.Value.ConversationId);
         await provider.Received().CompleteAsync(built, Arg.Any<CancellationToken>()); // memory-built messages LLM-এ

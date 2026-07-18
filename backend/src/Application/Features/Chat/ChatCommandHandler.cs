@@ -33,7 +33,7 @@ public class ChatCommandHandler(
         if (string.IsNullOrWhiteSpace(providerName) && modelRouter.IsEnabled)
             providerName = modelRouter.Route(message);
 
-        var provider = resolver.Resolve(providerName);
+        var provider = resolver.Resolve(providerName, request.Model);
         if (provider is null)
         {
             var requested = string.IsNullOrWhiteSpace(request.Provider) ? "default" : request.Provider;
