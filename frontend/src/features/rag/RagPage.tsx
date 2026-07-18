@@ -16,7 +16,7 @@ import { selectDefaultProvider } from '@/features/settings/uiSlice'
 import { useRagMutation } from './ragApi'
 
 const METHODS = ['keyword', 'embedding', 'qdrant', 'hybrid']
-const PROVIDERS = ['groq', 'gemini', 'mistral']
+import { PROVIDERS } from '@/lib/providers'
 
 export function RagPage() {
   const [question, setQuestion] = useState('')

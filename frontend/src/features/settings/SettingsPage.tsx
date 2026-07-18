@@ -20,7 +20,7 @@ import {
   type Theme,
 } from './uiSlice'
 
-const PROVIDERS = ['groq', 'gemini', 'mistral']
+import { PROVIDERS } from '@/lib/providers'
 
 export function SettingsPage() {
   const t = useT()

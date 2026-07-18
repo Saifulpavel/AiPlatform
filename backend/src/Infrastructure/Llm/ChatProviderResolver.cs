@@ -3,32 +3,58 @@ using Microsoft.Extensions.Options;
 
 namespace AiPlatform.Infrastructure.Llm;
 
-// config-এর provider গুলো থেকে (key আছে এমন) instance বানায়, নাম দিয়ে resolve করে।
+// config-এর provider গুলো থেকে (usable এমন) instance বানায়, নাম দিয়ে resolve করে।
+// model override দিলে (ollama model-picker) ওই provider-এর config clone করে নতুন instance —
+// provider instance stateless/সস্তা, তাই per-request বানানো নিরাপদ; IChatProvider interface অক্ষত।
 public class ChatProviderResolver : IChatProviderResolver
 {
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly Dictionary<string, IChatProvider> _providers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, ProviderConfig> _configs = new(StringComparer.OrdinalIgnoreCase);
     private readonly string _defaultProvider;
 
     public ChatProviderResolver(IHttpClientFactory httpClientFactory, IOptions<LlmSettings> options)
     {
+        _httpClientFactory = httpClientFactory;
         var settings = options.Value;
         _defaultProvider = settings.DefaultProvider;
 
         foreach (var (name, config) in settings.Providers)
         {
-            // key ছাড়া provider unusable — skip (তাহলে ভুল করে select করলেও পরিষ্কার error)
-            if (string.IsNullOrWhiteSpace(config.ApiKey))
+            // hosted provider key ছাড়া unusable — skip। local (RequiresApiKey=false) key ছাড়াই চলে।
+            if (config.RequiresApiKey && string.IsNullOrWhiteSpace(config.ApiKey))
                 continue;
 
-            _providers[name] = config.Type.Equals("gemini", StringComparison.OrdinalIgnoreCase)
-                ? new GeminiChatProvider(httpClientFactory, name, config)
-                : new OpenAiCompatibleChatProvider(httpClientFactory, name, config);
+            _configs[name] = config;
+            _providers[name] = Build(name, config);
         }
     }
 
-    public IChatProvider? Resolve(string? providerName)
+    public IChatProvider? Resolve(string? providerName, string? model = null)
     {
         var name = string.IsNullOrWhiteSpace(providerName) ? _defaultProvider : providerName;
-        return _providers.TryGetValue(name, out var provider) ? provider : null;
+
+        // model override নেই → configured default-model instance (cached)।
+        if (string.IsNullOrWhiteSpace(model))
+            return _providers.GetValueOrDefault(name);
+
+        // override আছে → ওই provider-এর config clone করে ওই model দিয়ে fresh instance।
+        if (!_configs.TryGetValue(name, out var config))
+            return null;
+
+        var overridden = new ProviderConfig
+        {
+            Type = config.Type,
+            BaseUrl = config.BaseUrl,
+            Model = model,
+            ApiKey = config.ApiKey,
+            RequiresApiKey = config.RequiresApiKey
+        };
+        return Build(name, overridden);
     }
+
+    private IChatProvider Build(string name, ProviderConfig config)
+        => config.Type.Equals("gemini", StringComparison.OrdinalIgnoreCase)
+            ? new GeminiChatProvider(_httpClientFactory, name, config)
+            : new OpenAiCompatibleChatProvider(_httpClientFactory, name, config);
 }

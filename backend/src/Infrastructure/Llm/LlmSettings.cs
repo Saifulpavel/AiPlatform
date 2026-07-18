@@ -25,6 +25,10 @@ public class ProviderConfig
     public string? BaseUrl { get; init; }            // openai-compatible-এর endpoint
     public string Model { get; init; } = string.Empty;
     public string? ApiKey { get; init; }             // secrets থেকে
+
+    // local provider (Ollama) key ছাড়াই চলে — false দিলে resolver key না থাকলেও skip করে না।
+    // default true = hosted provider (key না থাকলে unusable, skip)।
+    public bool RequiresApiKey { get; init; } = true;
 }
 
 public class EmbeddingConfig

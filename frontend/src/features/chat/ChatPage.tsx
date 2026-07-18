@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useChatStream } from './useChatStream'
+import { useLocalModelsQuery } from './modelsApi'
 import { useLazyGetConversationQuery, useListConversationsQuery } from './conversationsApi'
 
 interface Message {
@@ -22,16 +23,27 @@ interface Message {
   content: string
 }
 
-const PROVIDERS = ['groq', 'gemini', 'mistral']
+import { PROVIDERS } from '@/lib/providers'
 
 export function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [provider, setProvider] = useState(useAppSelector(selectDefaultProvider))
+  const [model, setModel] = useState<string | undefined>(undefined)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const { stream, isStreaming } = useChatStream()
   const dispatch = useAppDispatch()
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  // ollama select করলেই installed model তালিকা আনি; অন্য provider-এ skip (config-এর default model)
+  const isLocal = provider === 'ollama'
+  const { data: localModels } = useLocalModelsQuery(undefined, { skip: !isLocal })
+
+  // ollama-তে model বাছা না থাকলে প্রথমটা default; provider বদলালে model reset
+  useEffect(() => {
+    if (isLocal && localModels?.length) setModel((m) => (m && localModels.includes(m) ? m : localModels[0]))
+    else setModel(undefined)
+  }, [isLocal, localModels])
 
   const { data: conversations } = useListConversationsQuery()
   const [fetchConversation] = useLazyGetConversationQuery()
@@ -76,14 +88,20 @@ export function ChatPage() {
     setMessages((m) => [...m, { role: 'user', content: text }, { role: 'assistant', content: '' }])
 
     try {
-      await stream(text, provider, convId, (token) => {
-        setMessages((m) => {
-          const copy = [...m]
-          const last = copy[copy.length - 1]
-          copy[copy.length - 1] = { ...last, content: last.content + token }
-          return copy
-        })
-      })
+      await stream(
+        text,
+        provider,
+        convId,
+        (token) => {
+          setMessages((m) => {
+            const copy = [...m]
+            const last = copy[copy.length - 1]
+            copy[copy.length - 1] = { ...last, content: last.content + token }
+            return copy
+          })
+        },
+        model,
+      )
       // reply শেষ → sidebar list refresh (title/updatedAt)
       dispatch(baseApi.util.invalidateTags(['Conversation']))
     } catch {
@@ -134,18 +152,36 @@ export function ChatPage() {
       <div className="flex flex-1 flex-col">
         <div className="mb-3 flex items-center justify-between">
           <h1 className="text-xl font-bold">Chat</h1>
-          <Select value={provider} onValueChange={setProvider}>
-            <SelectTrigger className="w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PROVIDERS.map((p) => (
-                <SelectItem key={p} value={p}>
-                  {p}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select value={provider} onValueChange={setProvider}>
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PROVIDERS.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* ollama select করলে installed model-এর ২nd dropdown */}
+            {isLocal && localModels && localModels.length > 0 && (
+              <Select value={model} onValueChange={setModel}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {localModels.map((mo) => (
+                    <SelectItem key={mo} value={mo}>
+                      {mo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto rounded-2xl border bg-card p-4">

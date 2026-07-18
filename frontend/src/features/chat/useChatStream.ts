@@ -11,6 +11,7 @@ export function useChatStream() {
     provider: string,
     conversationId: string | null,
     onToken: (t: string) => void,
+    model?: string,
   ) => {
     setIsStreaming(true)
     try {
@@ -19,7 +20,8 @@ export function useChatStream() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         credentials: 'include',
         // conversationId পাঠালে backend multi-turn memory চালু করে (history + persist)
-        body: JSON.stringify({ message, provider, conversationId }),
+        // model দিলে ওই provider ওই model-এ (ollama model-picker); না দিলে config-এর default
+        body: JSON.stringify({ message, provider, model, conversationId }),
       })
       if (!res.ok || !res.body) throw new Error(`stream failed: ${res.status}`)
 

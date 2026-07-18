@@ -27,7 +27,7 @@ import { selectDefaultProvider } from '@/features/settings/uiSlice'
 import { useRunEvalsMutation, useUsageSummaryQuery } from './dashboardApi'
 import { UsageCharts } from './UsageCharts'
 
-const PROVIDERS = ['groq', 'gemini', 'mistral']
+import { PROVIDERS } from '@/lib/providers'
 
 const KPI_GRADIENTS = [
   'from-[var(--chart-1)] to-[var(--chart-3)]',
