@@ -44,6 +44,13 @@
 
 > 💡 Ollama default-এ শুধু localhost-এ শোনে — বাইরে থেকে access লাগলে `OLLAMA_HOST=0.0.0.0` env var (আমাদের দরকার নেই, API একই মেশিনে)।
 
+### 🖥️ এই মেশিনের কথা (HP EliteBook 840 G8 — office laptop)
+- **CPU:** i5-1145G7 (4-core/8-thread) · **RAM:** 16GB (15.7 usable) · **GPU:** Intel Iris Xe **integrated — dedicated GPU নেই**
+- ⇒ **CPU-only inference।** Iris Xe Ollama-তে কার্যত কাজে লাগে না; সব CPU-তে চলবে → ধীর (কয়েক token/সেকেন্ড), কিন্তু **চলবে**।
+- **PC পুড়বে না — শূন্য ঝুঁকি।** LLM inference = শুধু CPU load (video render/বড় compile-এর মতোই)। গরম হবে, fan ঘুরবে; কিন্তু thermal throttling **নিজেই** চিপ বাঁচায় (গরম হলে speed কমায়, hardware নষ্ট হয় না)। office laptop নিরাপদ।
+- **আসল সীমা = RAM**, তাপ নয়। docker stack (SQL Server ~2GB + Redis + Qdrant + Aspire) + API + frontend + IDE একসাথে চললে RAM টাইট → **3b-ই সর্বোচ্চ নিরাপদ default**। 7b+ শুধু docker বন্ধ রেখে একলা টেস্টে (নইলে RAM swap → হ্যাং)।
+- সতর্কতা: model চালানোর সময় RAM নজরে রাখো (Task Manager)। swap শুরু হলে (disk 100%) → ছোট model-এ নামো।
+
 ---
 
 ## ৩. Model setup
@@ -56,14 +63,16 @@ ollama list             # কী কী নামানো আছে
 ollama rm <model>       # মুছে ফেলা
 ```
 
-### কোনটা নামাবো (আমাদের plan)
+### কোনটা নামাবো (এই মেশিনে — CPU-only, 16GB)
 
-| কাজ | Model | সাইজ (RAM) | কেন |
+| কাজ | Model | সাইজ (RAM) | এই মেশিনে |
 |---|---|---|---|
-| **Chat (মূল)** | `qwen2.5:3b` | ~2.5GB | ছোট অথচ ভালো multilingual (বাংলা output তুলনামূলক ভালো), **tool-calling support** (আমাদের agent-এর জন্য) |
-| Chat (বিকল্প, আরও ভালো মান) | `qwen2.5:7b` বা `llama3.1:8b` | ~5-6GB | RAM ১৬GB+ হলে |
-| Chat (খুবই হালকা) | `llama3.2:1b` | ~1.5GB | দুর্বল মেশিনে smoke-test |
-| **Embedding (RAG)** | `nomic-embed-text` | ~0.5GB | দ্রুত, ভালো মানের, 768-dim |
+| **Chat (মূল/default)** | `qwen2.5:3b` | ~2.5GB | ✅ docker stack চললেও নিরাপদ। multilingual (বাংলা তুলনামূলক ভালো) + **tool-calling** (agent-এর জন্য) |
+| Chat (smoke/title-gen) | `llama3.2:1b` | ~1.5GB | ✅ দ্রুততম, খুব হালকা |
+| Chat (বেশি মান) | `qwen2.5:7b` / `llama3.1:8b` | ~5-6GB | ⚠️ **শুধু docker বন্ধ রেখে** একলা টেস্টে; নইলে RAM swap → হ্যাং |
+| **Embedding (RAG)** | `nomic-embed-text` | ~0.5GB | ✅ দ্রুত, 768-dim |
+
+> এই মেশিনে সিদ্ধান্ত: **3b default, 1b smoke** — 7b+ ঠেলব না (office laptop, RAM নিরাপত্তা)।
 
 শুরুতে দুটোই যথেষ্ট:
 ```powershell
