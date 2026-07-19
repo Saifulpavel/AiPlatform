@@ -18,7 +18,7 @@ public class RagController(IMediator mediator) : ApiControllerBase
     public async Task<IActionResult> Query(RagRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
-            new RagQueryCommand(request.Question, request.Method, request.Provider), cancellationToken);
+            new RagQueryCommand(request.Question, request.Method, request.Provider, request.Model), cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : ToProblem(result.Error);
     }
 }

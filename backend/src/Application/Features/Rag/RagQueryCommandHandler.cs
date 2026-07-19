@@ -36,7 +36,7 @@ public class RagQueryCommandHandler(
         if (chunks.Count == 0)
             return new RagResponse(NotFoundAnswer, chunks);
 
-        var chat = chatResolver.Resolve(request.Provider);
+        var chat = chatResolver.Resolve(request.Provider, request.Model);
         if (chat is null)
         {
             var requested = string.IsNullOrWhiteSpace(request.Provider) ? "default" : request.Provider;

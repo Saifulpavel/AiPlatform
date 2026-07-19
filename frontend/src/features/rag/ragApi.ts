@@ -13,6 +13,7 @@ export interface RagRequest {
   question: string
   method: string
   provider: string
+  model?: string
 }
 
 export const ragApi = baseApi.injectEndpoints({

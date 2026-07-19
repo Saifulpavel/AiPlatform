@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Text.Json;
 using AiPlatform.Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -44,20 +45,52 @@ public class OllamaModelCatalog(
             if (!doc.RootElement.TryGetProperty("models", out var models) || models.ValueKind != JsonValueKind.Array)
                 return [];
 
-            return models.EnumerateArray()
+            var names = models.EnumerateArray()
                 .Select(m => m.TryGetProperty("name", out var n) ? n.GetString() : null)
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Select(name => name!)
-                // embedding model chat-এ চলে না — বাদ। ponytail: নাম-heuristic ("embed"); নির্ভুল লাগলে
-                // প্রতি model-এ /api/show করে capability দেখতে হবে (এখন দরকার নেই, একটাই embed model)।
-                .Where(name => !name.Contains("embed", StringComparison.OrdinalIgnoreCase))
                 .ToList();
+
+            // chat model-ই রাখি — embedding model (nomic, bge-m3…) chat dropdown-এ আসবে না।
+            // capability /api/show থেকে (নাম-heuristic অনির্ভরযোগ্য — bge-m3-এ "embed" নেই)।
+            var authority = new Uri(ollama.BaseUrl).GetLeftPart(UriPartial.Authority);
+            var checks = names.Select(async name =>
+                (name, isChat: await IsChatModelAsync(http, authority, name, cancellationToken)));
+            var results = await Task.WhenAll(checks);
+            return results.Where(r => r.isChat).Select(r => r.name).ToList();
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
         {
             // ollama down / timeout / বাজে response — খালি তালিকা, feature ভাঙে না
             logger.LogWarning(ex, "Ollama model list fetch failed ({Uri})", tagsUri);
             return [];
+        }
+    }
+
+    // /api/show → capabilities-এ "completion" থাকলে chat model। fail হলে true (valid chat model
+    // লুকানোর চেয়ে মাঝে মাঝে embed model দেখানো কম ক্ষতিকর — বিরল)।
+    private async Task<bool> IsChatModelAsync(HttpClient http, string authority, string model, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"{authority}/api/show")
+            {
+                Content = JsonContent.Create(new { model })
+            };
+            using var response = await http.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+                return true;
+
+            var raw = await response.Content.ReadAsStringAsync(cancellationToken);
+            using var doc = JsonDocument.Parse(raw);
+            if (!doc.RootElement.TryGetProperty("capabilities", out var caps) || caps.ValueKind != JsonValueKind.Array)
+                return true;
+
+            return caps.EnumerateArray().Any(c => c.GetString() == "completion");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            return true;
         }
     }
 }

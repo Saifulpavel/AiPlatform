@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Loader2, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -11,8 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/app/hooks'
 import { selectDefaultProvider } from '@/features/settings/uiSlice'
+import { useLocalModelsQuery } from '@/features/chat/modelsApi'
 import { useRagMutation } from './ragApi'
 
 const METHODS = ['keyword', 'embedding', 'qdrant', 'hybrid']
@@ -22,13 +23,22 @@ export function RagPage() {
   const [question, setQuestion] = useState('')
   const [method, setMethod] = useState('embedding')
   const [provider, setProvider] = useState(useAppSelector(selectDefaultProvider))
+  const [model, setModel] = useState<string | undefined>(undefined)
   const [rag, { data, isLoading }] = useRagMutation()
+
+  // ollama select করলে installed model তালিকা (chat page-এর একই endpoint); অন্য provider-এ skip
+  const isLocal = provider === 'ollama'
+  const { data: localModels } = useLocalModelsQuery(undefined, { skip: !isLocal })
+  useEffect(() => {
+    if (isLocal && localModels?.length) setModel((m) => (m && localModels.includes(m) ? m : localModels[0]))
+    else setModel(undefined)
+  }, [isLocal, localModels])
 
   const ask = async () => {
     const q = question.trim()
     if (!q) return
     try {
-      await rag({ question: q, method, provider }).unwrap()
+      await rag({ question: q, method, provider, model }).unwrap()
     } catch {
       toast.error('উত্তর আনা যায়নি')
     }
@@ -51,6 +61,16 @@ export function RagPage() {
             {PROVIDERS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
           </SelectContent>
         </Select>
+
+        {/* ollama select করলে installed model-এর 2nd dropdown (chat page-এর মতোই) */}
+        {isLocal && localModels && localModels.length > 0 && (
+          <Select value={model} onValueChange={setModel}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="model" /></SelectTrigger>
+            <SelectContent>
+              {localModels.map((mo) => <SelectItem key={mo} value={mo}>{mo}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       <Textarea
