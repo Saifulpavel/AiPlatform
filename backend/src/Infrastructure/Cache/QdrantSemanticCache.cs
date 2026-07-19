@@ -11,15 +11,20 @@ namespace AiPlatform.Infrastructure.Cache;
 public class QdrantSemanticCache(
     IHttpClientFactory httpClientFactory,
     IOptions<QdrantSettings> qdrantOptions,
-    IOptions<SemanticCacheSettings> cacheOptions) : ISemanticCache
+    IOptions<SemanticCacheSettings> cacheOptions,
+    IOptions<Llm.LlmSettings> llmOptions) : ISemanticCache
 {
     private readonly QdrantSettings _qdrant = qdrantOptions.Value;
     private readonly SemanticCacheSettings _settings = cacheOptions.Value;
+    // embedding model-ভেদে cache collection-ও isolate (query embedding একই vector space-এ)
+    private readonly string _collection =
+        Rag.CollectionNaming.ForEmbedding(
+            cacheOptions.Value.Collection, llmOptions.Value.Embedding.Provider, llmOptions.Value.Embedding.Model);
 
     public bool IsEnabled => _settings.Enabled;
 
     private HttpClient Http() => httpClientFactory.CreateClient("llm");
-    private string CollectionUrl => $"{_qdrant.Url}/collections/{_settings.Collection}";
+    private string CollectionUrl => $"{_qdrant.Url}/collections/{_collection}";
 
     public async Task<string?> GetAsync(float[] queryEmbedding, CancellationToken cancellationToken)
     {

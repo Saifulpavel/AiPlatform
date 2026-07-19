@@ -70,14 +70,19 @@ ollama rm <model>       # মুছে ফেলা
 | **Chat (মূল/default)** | `qwen2.5:3b` | ~2.5GB | ✅ docker stack চললেও নিরাপদ। multilingual (বাংলা তুলনামূলক ভালো) + **tool-calling** (agent-এর জন্য) |
 | Chat (smoke/title-gen) | `llama3.2:1b` | ~1.5GB | ✅ দ্রুততম, খুব হালকা |
 | Chat (বেশি মান) | `qwen2.5:7b` / `llama3.1:8b` | ~5-6GB | ⚠️ **শুধু docker বন্ধ রেখে** একলা টেস্টে; নইলে RAM swap → হ্যাং |
-| **Embedding (RAG)** | `nomic-embed-text` | ~0.5GB | ✅ দ্রুত, 768-dim |
+| **Embedding — বাংলা RAG** | `bge-m3` | ~1.2GB, 1024-dim | ✅ **এটাই ব্যবহার করো** — multilingual, বাংলায় ঠিক discriminate করে |
+| Embedding — English-only | `nomic-embed-text` | ~0.5GB, 768-dim | ⚠️ বাংলায় **দুর্বল** (সব ~0.83-এ জট, ranking ভুল) — শুধু ইংরেজি corpus-এ |
 
-> এই মেশিনে সিদ্ধান্ত: **3b default, 1b smoke** — 7b+ ঠেলব না (office laptop, RAM নিরাপত্তা)।
+> এই মেশিনে সিদ্ধান্ত: chat **3b/4b default** (gemma3:4b বা qwen3:4b), embedding **bge-m3** (বাংলা)।
+>
+> ⚠️ **শেখা (2026-07-19):** chat model বাংলা *বলতে* পারা ≠ embedding model বাংলা *বুঝে ভাগ করা*।
+> nomic-embed-text দিয়ে বাংলা RAG-এ প্রাসঙ্গিক chunk retrieve হয় না (সব score ~0.83, discrimination নেই)।
+> `bge-m3` (multilingual) দিয়ে ঠিক হয় — প্রাসঙ্গিক chunk উপরে ওঠে। **embedding model corpus-ভাষার সাথে মেলাও।**
 
-শুরুতে দুটোই যথেষ্ট:
+শুরুতে (এই প্রজেক্টের জন্য):
 ```powershell
-ollama pull qwen2.5:3b
-ollama pull nomic-embed-text
+ollama pull gemma3:4b        # chat (বাংলা)
+ollama pull bge-m3           # embedding (বাংলা RAG)
 ```
 
 টেস্ট:

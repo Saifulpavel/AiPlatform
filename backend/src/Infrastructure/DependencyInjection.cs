@@ -85,12 +85,22 @@ public static class DependencyInjection
         services.Configure<Cache.SemanticCacheSettings>(configuration.GetSection(Cache.SemanticCacheSettings.SectionName));
         services.AddSingleton<ISemanticCache, Cache.QdrantSemanticCache>();
 
-        // LLM providers — config-driven (key user-secrets), HttpClient factory দিয়ে
+        // LLM providers — config-driven (key user-secrets), HttpClient factory দিয়ে।
+        // Timeout 5min: local model (ollama, CPU) ধীর — বিশেষত qwen-এর মতো thinking model লম্বা
+        // reasoning চালায়; default 100s-এ 500 হতো। hosted দ্রুত, তাই এই বড় timeout ওদের ক্ষতি করে না।
         services.Configure<Llm.LlmSettings>(configuration.GetSection(Llm.LlmSettings.SectionName));
-        services.AddHttpClient("llm");
+        services.AddHttpClient("llm", c => c.Timeout = TimeSpan.FromMinutes(5));
         services.AddSingleton<IChatProviderResolver, Llm.ChatProviderResolver>();
         services.AddSingleton<ILocalModelCatalog, Llm.OllamaModelCatalog>();
-        services.AddSingleton<IEmbeddingProvider, Llm.GeminiEmbeddingProvider>();
+
+        // Embedding provider — config-driven (default gemini)। ollama = local, key ছাড়া।
+        // ⚠️ embedding বদলালে vector space বদলায় → RAG/cache collection isolate হয় (নিচে suffix)।
+        var embeddingProvider = configuration.GetSection(Llm.LlmSettings.SectionName)
+            .GetSection("Embedding")["Provider"] ?? "gemini";
+        if (embeddingProvider.Equals("ollama", StringComparison.OrdinalIgnoreCase))
+            services.AddSingleton<IEmbeddingProvider, Llm.OllamaEmbeddingProvider>();
+        else
+            services.AddSingleton<IEmbeddingProvider, Llm.GeminiEmbeddingProvider>();
 
         // Model routing — auto mode-এ complexity দেখে cheap/strong provider select
         services.Configure<Llm.RoutingSettings>(configuration.GetSection(Llm.RoutingSettings.SectionName));

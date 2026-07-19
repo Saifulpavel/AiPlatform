@@ -2,17 +2,25 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using AiPlatform.Application.Common.Interfaces;
 using AiPlatform.Application.Common.Models;
+using AiPlatform.Infrastructure.Llm;
 using Microsoft.Extensions.Options;
 
 namespace AiPlatform.Infrastructure.Rag;
 
 // Qdrant REST API দিয়ে vector store (demo migrate)। interface-এর পিছনে বলে পরে অন্য DB swap করা যায়।
-public class QdrantVectorStore(IHttpClientFactory httpClientFactory, IOptions<QdrantSettings> options)
+public class QdrantVectorStore(
+    IHttpClientFactory httpClientFactory,
+    IOptions<QdrantSettings> options,
+    IOptions<LlmSettings> llmOptions)
     : IVectorStore
 {
     private readonly QdrantSettings _settings = options.Value;
+    // embedding model-ভেদে collection isolate (vector space + dimension আলাদা)
+    private readonly string _collection =
+        CollectionNaming.ForEmbedding(
+            options.Value.Collection, llmOptions.Value.Embedding.Provider, llmOptions.Value.Embedding.Model);
     private HttpClient Http() => httpClientFactory.CreateClient("llm");
-    private string CollectionUrl => $"{_settings.Url}/collections/{_settings.Collection}";
+    private string CollectionUrl => $"{_settings.Url}/collections/{_collection}";
 
     public async Task EnsureCollectionAsync(int dimension, CancellationToken cancellationToken)
     {

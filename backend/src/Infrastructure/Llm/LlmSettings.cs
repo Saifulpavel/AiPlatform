@@ -33,6 +33,10 @@ public class ProviderConfig
 
 public class EmbeddingConfig
 {
+    // "gemini" (hosted, default) | "ollama" (local, key ছাড়া)। embedding = deploy-level সিদ্ধান্ত
+    // (per-request না) — কারণ vector space collection-এর সাথে বাঁধা, চললে collection isolate লাগে।
+    public string Provider { get; init; } = "gemini";
     public string Model { get; init; } = "gemini-embedding-001";
     public string? ApiKey { get; init; }
+    public string? BaseUrl { get; init; }   // ollama: http://localhost:11434 (native /api/embed)
 }
