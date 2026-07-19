@@ -73,7 +73,10 @@ ollama rm <model>       # মুছে ফেলা
 | **Embedding — বাংলা RAG** | `bge-m3` | ~1.2GB, 1024-dim | ✅ **এটাই ব্যবহার করো** — multilingual, বাংলায় ঠিক discriminate করে |
 | Embedding — English-only | `nomic-embed-text` | ~0.5GB, 768-dim | ⚠️ বাংলায় **দুর্বল** (সব ~0.83-এ জট, ranking ভুল) — শুধু ইংরেজি corpus-এ |
 
-> এই মেশিনে সিদ্ধান্ত: chat **3b/4b default** (gemma3:4b বা qwen3:4b), embedding **bge-m3** (বাংলা)।
+> এই মেশিনে সিদ্ধান্ত (2026-07-20 আপডেট): chat local default **`llama3.1:8b`**, embedding **bge-m3** (বাংলা)।
+> কঠিন বাংলা auto-route হয়ে **groq**-এ যায় (hybrid routing, নিচে দেখো)। `gemma3:4b`/`qwen3:4b` বাদ দেওয়া হয়েছে।
+>
+> ⚠️ **শেখা (2026-07-20):** local model বাংলা তুলনা — `qwen2.5:7b` বাংলায় দুর্বল (Chinese char leak), `llama3.1:8b` বাংলা পরিষ্কার। তাই local chat default = `llama3.1:8b`।
 >
 > ⚠️ **শেখা (2026-07-19):** chat model বাংলা *বলতে* পারা ≠ embedding model বাংলা *বুঝে ভাগ করা*।
 > nomic-embed-text দিয়ে বাংলা RAG-এ প্রাসঙ্গিক chunk retrieve হয় না (সব score ~0.83, discrimination নেই)।
@@ -81,7 +84,7 @@ ollama rm <model>       # মুছে ফেলা
 
 শুরুতে (এই প্রজেক্টের জন্য):
 ```powershell
-ollama pull gemma3:4b        # chat (বাংলা)
+ollama pull llama3.1:8b      # chat (বাংলা local default)
 ollama pull bge-m3           # embedding (বাংলা RAG)
 ```
 
@@ -202,6 +205,23 @@ Config-এ provider যোগ + ২টা ছোট Infrastructure ফাইল 
 | Tool-calling | ছোট model-এ নড়বড়ে — agent টেস্টে ধৈর্য |
 | Docker | Ollama compose-এ ঢোকানো **করব না** এখন — host-এ native চালানোই GPU/সরলতার জন্য ভালো; API container থেকে host-এর Ollama ধরতে `host.docker.internal` (পরে দরকার হলে) |
 | CI | CI-তে ollama টেস্ট যোগ করব না — model নামানো ভারী; local-first |
+
+---
+
+## Hybrid routing (2026-07-20 চালু)
+
+`ChatCommandHandler` — request-এ `provider` না দিলে + routing on থাকলে `HeuristicModelRouter` complexity দেখে auto-select করে। Config: `appsettings.json` → `Llm:Routing`।
+
+| ইনপুট | রুট → provider | কেন |
+|---|---|---|
+| সহজ (ছোট, keyword নেই) | `ollama` (`llama3.1:8b`) local | সস্তা, দ্রুত, offline |
+| English > `WordThreshold` (৩০) শব্দ | `groq` | reasoning ভারী |
+| বাংলা > `BanglaWordThreshold` (১২) শব্দ | `groq` | local বাংলায় দুর্বল, তাই নিচু threshold |
+| `ComplexKeywords` match (explain/ব্যাখ্যা/বিশ্লেষণ…) | `groq` | depth signal |
+
+- বাংলা detect: Unicode Bengali block (U+0980–U+09FF) — একটা অক্ষর থাকলেই বাংলা।
+- কোন model call হলো: response-এর `provider`/`model` field দেখো।
+- Test: `HeuristicModelRouterTests` (৬টা কেস)।
 
 ---
 

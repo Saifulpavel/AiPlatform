@@ -159,7 +159,7 @@ POST {{api}}/chat
 Content-Type: application/json
 Authorization: Bearer {{login.response.body.$.accessToken}}
 
-{ "message": "explain the CAP theorem and analyze its trade-offs in distributed databases step by step" }
+{ "message": "আমার ছোট একটা business আছে, সেখানে কীভাবে অল্প খরচে একটা ভালো marketing পরিকল্পনা সাজাতে পারি বলো তো?" }
 ### Expected: 200, provider = "groq" (keyword/length → strong model)
 
 ### chat — INVALID (খালি message)

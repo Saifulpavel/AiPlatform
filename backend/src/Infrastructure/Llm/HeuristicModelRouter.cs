@@ -14,9 +14,16 @@ public class HeuristicModelRouter(IOptions<RoutingSettings> options) : IModelRou
     public string Route(string message)
     {
         var wordCount = message.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
-        var isComplex = wordCount > _settings.WordThreshold
+
+        // বাংলা হলে নিচু threshold — local model বাংলায় দুর্বল, তাই অল্পতেই strong (groq)।
+        var threshold = ContainsBangla(message) ? _settings.BanglaWordThreshold : _settings.WordThreshold;
+        var isComplex = wordCount > threshold
             || _settings.ComplexKeywords.Any(k => message.Contains(k, StringComparison.OrdinalIgnoreCase));
 
         return isComplex ? _settings.StrongProvider : _settings.CheapProvider;
     }
+
+    // Unicode Bengali block (U+0980–U+09FF)। একটা অক্ষর থাকলেই বাংলা ধরি।
+    private static bool ContainsBangla(string message)
+        => message.Any(c => c is >= 'ঀ' and <= '৿');
 }
