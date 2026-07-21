@@ -242,6 +242,60 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 { "message": "রিটার্ন পলিসি কী? knowledge base দেখো।", "provider": "groq" }
 ### Expected: 200, toolsUsed: ["search_knowledge_base"] — KB থেকে passage এনে উত্তর।
 
+### ============================================================
+### ERP tool — get_sales (sample ERP DB, seed 2026-01 → 2026-07)
+### ⚠️ Erp:SeedOnStartup=true থাকতে হবে। আসল সংখ্যা docs/erp-integration-plan.md-এ।
+### ============================================================
+
+### erp — মাসের মোট বিক্রি
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "জুলাই ২০২৬-এ মোট বিক্রি কত?", "provider": "groq" }
+### Expected: 200, toolsUsed: ["get_sales"] — উত্তরে ১৭,৪৩,৫৬৮ (৮টি order)।
+
+### erp — customer wise breakdown
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "মে ২০২৬-এর বিক্রি customer wise দেখাও।", "provider": "groq" }
+### Expected: 200, get_sales(groupBy=customer) — প্রতি customer-এর order সংখ্যা ও টাকা, বেশি→কম।
+
+### erp — top N
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "জুন ২০২৬-এ সবচেয়ে বেশি বিক্রি হওয়া ৩টি পণ্য দেখাও।", "provider": "groq" }
+### Expected: 200, get_sales(groupBy=product, topN=3) — ৩টি সারি, truncated=true হতে পারে।
+
+### erp — দুই filter একসাথে (customer + product)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "করিম ট্রেডার্স ২০২৬ সালে Dell-এর কতগুলো কিনেছে?", "provider": "groq" }
+### Expected: 200, get_sales(customerName="Karim", productName="Dell") — নতুন tool লাগেনি, দুই filter একসাথে।
+
+### erp — অস্পষ্ট প্রশ্ন (LLM-এর পাল্টা প্রশ্ন করার কথা)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "জুনের top 3 seller দেখাও।", "provider": "groq" }
+### Expected: 200 — "customer না product বোঝাচ্ছেন?" জিজ্ঞেস করা উচিত (description-এ নির্দেশ আছে),
+### অনুমান করে উত্তর দিলে সেটা দুর্বলতা — লিখে রাখো।
+
+### erp — INVALID (data নেই এমন filter)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "২০২৪ সালে কত বিক্রি হয়েছে?", "provider": "groq" }
+### Expected: 200, rowCount=0 + note — LLM যেন "০" না বলে, বরং ঐ সময়ের data নেই বলে।
+
 ### agent — INVALID (tool-calling নেই এমন provider)
 POST {{api}}/agent
 Content-Type: application/json

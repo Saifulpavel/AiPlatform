@@ -138,6 +138,8 @@ public static class DependencyInjection
                 .Get<Application.Features.Agent.AgentSettings>() ?? new Application.Features.Agent.AgentSettings());
         services.AddSingleton<ITool, Agent.CurrentTimeTool>();
         services.AddSingleton<ITool, Agent.KnowledgeBaseSearchTool>();
+        // Scoped — ErpDbContext scoped, singleton tool ধরে রাখলে captive dependency হতো।
+        services.AddScoped<ITool, Agent.GetSalesTool>();
 
         // RAG retrievers (keyword + embedding + qdrant)
         services.Configure<Rag.QdrantSettings>(configuration.GetSection(Rag.QdrantSettings.SectionName));
