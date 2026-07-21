@@ -94,6 +94,29 @@ Unapproved:         stock-এ কোনো প্রভাব নেই
 - **`CurrentStock.Cost` সবসময় কেনার খরচ** (বিক্রয়মূল্য নয়) — এই column stock **valuation**-এর জন্য। বিক্রয়মূল্য `SalesOrderDetail.UnitPrice`-এ আছে; লাভ = দুইয়ের পার্থক্য। বিক্রয়মূল্য বসালে গুদাম খালি হয়েও stock value **negative** দেখাত।
 - একই পণ্য ভিন্ন দামে কেনা হলে: **serialized** → `CurrentStockDetail` দিয়ে ঐ serial-এর হুবহু cost; **non-serialized** → average cost
 
+## Seed data (2026-07-22)
+
+`ErpSeeder` — **deterministic** (fixed seed `20260722`) ও **idempotent** (Company থাকলে skip)।
+চলে startup-এ, শুধু `Erp:SeedOnStartup=true` হলে (Development-এ true, নইলে false — integration test/production যেন না ছোঁয়)।
+
+⚠️ Seeder stock নিজে হাতে লেখে না — `ErpStockService.Approve*` ডাকে। তাই seed data ঠিক ততটাই সামঞ্জস্যপূর্ণ যতটা আসল approval-এ হতো।
+
+কী ঢোকে: ১ Company (APC), ২ Location (HO/CB), ২ ErpUser, ১৬ Product (৮ × ২ branch), ৪ Supplier, ৬ Customer, ২৮ PurchaseOrder, ৫৬ SalesOrder, ১৯১ ledger row — সবই ২০২৬ জানুয়ারি→জুলাই।
+
+**যাচাইয়ের জন্য আসল উত্তর** (AI এগুলোই বলা উচিত):
+
+| মাস | Order | মোট বিক্রি |
+|---|---|---|
+| জানুয়ারি | ৮ | ১৬,৮৪,৭৪৫ |
+| ফেব্রুয়ারি | ৮ | ১৫,৯০,৪৬৩ |
+| মার্চ | ৮ | ১৬,০৭,১০১ |
+| এপ্রিল | ৮ | ১৩,৬০,৪৮১ |
+| মে | ৮ | ১২,১৩,৯৮৪ |
+| জুন | ৮ | ১৪,১০,৮৬৭ |
+| **জুলাই** | **৮** | **১৭,৪৩,৫৬৮** |
+
+নতুন করে seed করতে: ERP database drop → API চালাও।
+
 ## সিদ্ধান্ত: ErpUser ↔ AiPlatform AppUser (2026-07-20)
 
 **hard FK কখনোই নয়** — (ক) আলাদা DbContext, EF cross-context FK enforce করতে পারে না; (খ) পরে আসল ERP DB বসালে তার টেবিলে আমাদের Identity-র FK যোগ করা যাবে না (swap-ability নষ্ট); (গ) ERP-র বেশিরভাগ কর্মী AiPlatform-এ login-ই করে না।

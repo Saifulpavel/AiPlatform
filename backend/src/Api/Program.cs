@@ -168,6 +168,15 @@ try
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.MigrateAsync();
         await IdentitySeeder.SeedRolesAsync(scope.ServiceProvider);
+
+        // Sample ERP — flag দিয়ে আলাদা করা। integration test আর production যেন ভুল করে
+        // developer-এর ERP database-এ migrate/seed না চালায়। seeder নিজে idempotent।
+        if (app.Configuration.GetValue<bool>("Erp:SeedOnStartup"))
+        {
+            var erpDb = scope.ServiceProvider.GetRequiredService<ErpDbContext>();
+            await erpDb.Database.MigrateAsync();
+            await ErpSeeder.SeedAsync(erpDb);
+        }
     }
 
     app.Run();

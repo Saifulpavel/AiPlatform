@@ -29,6 +29,8 @@ public static class DependencyInjection
                     sql => sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null))
                 .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
 
+        services.AddScoped<Erp.ErpStockService>();
+
         services
             .AddIdentityCore<AppUser>(options =>
             {

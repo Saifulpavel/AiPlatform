@@ -53,6 +53,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
         // টেস্টে কোনো OTLP collector নেই — চালু থাকলে exporter প্রতি export-এ retry করে log ভাসাত
         Environment.SetEnvironmentVariable("Otel__Enabled", "false");
+
+        // ⚠️ Development env → appsettings.Development.json পড়া হয়, যেখানে Erp:SeedOnStartup=true এবং
+        // Erp connection developer-এর localhost SQL Server-এ। বন্ধ না করলে test run ডেভেলপারের
+        // আসল ERP database-এ migrate+seed চালাত। এই test গুলো ERP ছোঁয় না, তাই সম্পূর্ণ বন্ধ।
+        Environment.SetEnvironmentVariable("Erp__SeedOnStartup", "false");
     }
 
     // register+login করা client — যেসব test-এর বিষয় auth নয়, সেগুলোর জন্য।
