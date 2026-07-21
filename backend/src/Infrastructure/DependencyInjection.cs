@@ -20,6 +20,15 @@ public static class DependencyInjection
                 configuration.GetConnectionString("Default"),
                 sql => sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null)));
 
+        // Sample ERP — আলাদা database (পরে আসল ERP-তে swap করা যাবে)।
+        // AI tool গুলো শুধু পড়বে, তাই NoTracking default — কম মেমরি, দ্রুত query।
+        services.AddDbContext<ErpDbContext>(options =>
+            options
+                .UseSqlServer(
+                    configuration.GetConnectionString("Erp"),
+                    sql => sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null))
+                .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+
         services
             .AddIdentityCore<AppUser>(options =>
             {
