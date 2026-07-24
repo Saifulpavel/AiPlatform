@@ -44,12 +44,36 @@ RAG (Phase 3) + tool-calling agent (7h) + multi-tenancy (7d) + guardrails (6d) +
 - চ্যাট UI-তে agent mode (7h `/agent` endpoint আছে) — ERP প্রশ্ন ওখানে
 - tool-call চলাকালীন "invoice বানাচ্ছি... confirm?" UI
 
-## ক্রম (পরে)
-1. Sample ERP DB + entity (C)
-2. Read tools আগে (get_total_sales, get_employee_salary) — নিরাপদ (B)
-3. RAG-এ ERP doc feed (A)
-4. Write tool + confirm guardrail (create_invoice) — শেষে, সাবধানে (B+D)
-5. Frontend agent UX (E)
+## ক্রম
+1. ~~Sample ERP DB + entity~~ ✅ 2026-07-22 (১৫ table, ErpDbContext, seed)
+2. ~~Read tools~~ ✅ 2026-07-22 — `get_sales` + `get_stock`
+3. RAG-এ ERP doc feed (A) — বাকি
+4. Write tool + confirm guardrail (`create_invoice`) — শেষে, সাবধানে (B+D)
+5. ~~Frontend agent UX~~ ✅ 2026-07-22 (Chat page-এ Agent toggle + toolsUsed badge + timing)
+
+## Tool design নীতি (2026-07-22, শেখা)
+
+**প্রতি প্রশ্নের ধরনে আলাদা tool নয় — এক tool + ঐচ্ছিক filter।** `get_total_sales_by_customer`,
+`get_total_sales_by_product`… এভাবে গেলে ২০টা tool হতো (*tool explosion*), আর LLM প্রায়-একরকম
+নামের ভিড়ে ভুল বাছত। নিয়ম:
+
+> একই টেবিল, শুধু ভিন্ন ছাঁকনি → **একই tool, নতুন parameter**।
+> ভিন্ন প্রশ্নের ধরন, ভিন্ন উত্তরের আকার → **নতুন tool**।
+
+| Tool | কী জানায় | Parameter |
+|---|---|---|
+| `get_sales` | কত বিক্রি হয়েছে | fromDate, toDate (আবশ্যক) + customerName, productName, location, groupBy, topN |
+| `get_stock` | এখন কী কত আছে | productName, location, belowQuantity, includeSerials (সব ঐচ্ছিক) |
+
+দুটোর গঠন ইচ্ছাকৃতভাবে এক রকম (একই validation, একই JSON আকার, ভুলে throw নয় — `{"error"}` ফেরত
+যাতে LLM শুধরে আবার ডাকতে পারে)। আচরণ আলাদা হলে LLM-ও গুলিয়ে ফেলে।
+
+**⚠️ EF ফাঁদ (দুবার কামড়েছে):** query-র `Select`-এ **positional record constructor** ব্যবহার করলে
+EF SQL-এ নামাতে পারে না ("could not be translated") — **object-initializer সহ class** লাগে।
+
+**সীমা:** fixed tool দিয়ে সাধারণ ERP প্রশ্নের ~৮০-৯০% মেটে। "গত ছয় মাসে ৩ বারের বেশি কেনা
+customer-দের brand-ভিত্তিক লাভ" ধরনের প্রশ্নে হয় নতুন report tool, নয় text-to-SQL লাগবে।
+**text-to-SQL এখন নয়** — ভুল join = ভুল সংখ্যা, tenant ফাঁস, ভারী query; ছোট model খারাপ SQL লেখে।
 
 ## Schema — চূড়ান্ত (2026-07-20, ১৫ table)
 

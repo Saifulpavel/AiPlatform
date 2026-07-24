@@ -85,6 +85,13 @@
   - Verified live: agent `POST /agent 200`, "July 2026 total sales?" → ১৭,৪৩,৫৬৮ + `get_sales` badge + `1.2s (LLM 926ms)`। 120 test + tsc + build green।
   - ⚠️ stream-এ backend latency নেই (SSE-তে metadata frame নেই) — শুধু frontend-মাপা মোট।
 - [x] **cerebras frontend dropdown** (2026-07-22) — `lib/providers.ts`-এ হাতে-লেখা তালিকায় cerebras ছিল না (ভাঙা থাকায় কখনো যোগ হয়নি)। ⚠️ দুই জায়গায় সত্য (backend appsettings + frontend array) — `GET /llm/providers` endpoint বানালে এক জায়গায় আসত; পরে করার মতো।
+- [x] **ERP read tool `get_stock`** (2026-07-22) — এখন গুদামে কী কত আছে। `StockBalance` (summary) পড়ে, ledger যোগ করে না।
+  - Parameter (সব ঐচ্ছিক): `productName`, `location`, `belowQuantity` (কী কমে যাচ্ছে), `includeSerials`।
+  - **belowQuantity দিলে কম-আগে সাজায়**, নইলে বেশি-আগে — জরুরি জিনিস নিচে চাপা পড়ে না।
+  - serial **location-scoped** (`CurrentStockDetail`-এ LocationId নেই → movement-এর মাধ্যমে বের করা); নইলে দুই branch-এর serial মিশত। ২০টার বেশি হলে count + নমুনা (context বাঁচাতে)।
+  - শূন্য-stock row **রাখা হয়** — "০ আছে" নিজেই উত্তর, চুপ করে বাদ দিলে "Dell কয়টা?" প্রশ্নে কিছুই আসত না।
+  - ⚠️ **একই EF ফাঁদ আবার**: positional record `Select`-এ অনুবাদ হয় না → object-initializer class (GetSalesTool-এও একই)। docs/erp-integration-plan.md-এ নথিভুক্ত।
+  - ১৩ test (133 মোট)। **Verified live**: "Dell কয়টা?" → ১৯ (HO ৮ + CB ১১, DB-র সাথে হুবহু); "১০টার কম?" → ProBook CB=0 শীর্ষে; "HO-তে Dell serial" → ঠিক ৮টা, CB-রগুলো মেশেনি।
 - [x] **RAG retrieval 3.2s তদন্ত** (2026-07-22, timing UI-ই ধরিয়ে দিল) — **cold start ছিল, model নয়**।
   - মাপা: call-1 **3459ms**, call-2 480ms, call-3 498ms। `EmbeddingRetriever` প্রথম request-এ পুরো corpus embed করত **একটা একটা করে** (৫ chunk × ~500ms) + query embed।
   - ⚠️ **provider বদলে লাভ নেই** — মাপা: gemini (network) ~480ms/call বনাম ollama bge-m3 (CPU) ~510ms/call। **প্রায় সমান**, তাই ~500ms-ই মেঝে। local embed দ্রুততর নয় (privacy/quota-র জন্য ভালো, speed-এর জন্য নয়)।

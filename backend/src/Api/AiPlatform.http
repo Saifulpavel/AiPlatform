@@ -296,6 +296,51 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 { "message": "২০২৪ সালে কত বিক্রি হয়েছে?", "provider": "groq" }
 ### Expected: 200, rowCount=0 + note — LLM যেন "০" না বলে, বরং ঐ সময়ের data নেই বলে।
 
+### ============================================================
+### ERP tool — get_stock (এখন গুদামে কী কত আছে)
+### ============================================================
+
+### erp — নির্দিষ্ট পণ্যের stock
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "Dell XPS 13 এখন কয়টা স্টকে আছে?" }
+### Expected: 200, toolsUsed: ["get_stock"] — মোট ১৯ (HO ৮ + CB ১১)।
+
+### erp — low stock (belowQuantity)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "কোন পণ্যগুলো ১০টার কম আছে?" }
+### Expected: 200, get_stock(belowQuantity=10) — **কম-আগে** সাজানো; HP ProBook 450 (CB) = 0 শীর্ষে।
+
+### erp — serial তালিকা (location-scoped)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "হেড অফিসে Dell XPS 13 এর serial number গুলো দেখাও।" }
+### Expected: 200, get_stock(productName="Dell", location="HO", includeSerials=true) — ঠিক ৮টা serial
+### (HO-র quantity ৮)। CB-র serial মিশলে **bug** — দুই branch আলাদা থাকতে হবে।
+
+### erp — accessory-তে serial নেই
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "HDMI Cable এর serial number দেখাও।" }
+### Expected: 200 — IsSerialized=false, তাই serial নেই; শুধু পরিমাণ (HO ১২৮, CB ১১৮) বলা উচিত।
+
+### erp — INVALID (নেই এমন পণ্য)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "iPhone 15 কয়টা আছে?" }
+### Expected: 200, rowCount=0 + note — "এই পণ্য ERP-তে নেই" বলা উচিত, "০ আছে" নয়।
+
 ### agent — INVALID (tool-calling নেই এমন provider)
 POST {{api}}/agent
 Content-Type: application/json
