@@ -32,9 +32,12 @@ public class RagQueryCommandHandler(
             return Error.Validation("Rag.UnknownMethod", $"Unknown retrieval method '{requested}'.");
         }
 
+        var retrievalWatch = Stopwatch.StartNew();
         var chunks = await retriever.RetrieveAsync(request.Question, TopN, cancellationToken);
+        retrievalWatch.Stop();
+
         if (chunks.Count == 0)
-            return new RagResponse(NotFoundAnswer, chunks);
+            return new RagResponse(NotFoundAnswer, chunks, retrievalWatch.ElapsedMilliseconds);
 
         var chat = chatResolver.Resolve(request.Provider, request.Model);
         if (chat is null)
@@ -54,6 +57,6 @@ public class RagQueryCommandHandler(
         usageRecorder.Record(new LlmUsageRecord(
             "rag", result.Provider, result.Model, result.InputTokens, result.OutputTokens, stopwatch.ElapsedMilliseconds));
 
-        return new RagResponse(result.Content, chunks);
+        return new RagResponse(result.Content, chunks, retrievalWatch.ElapsedMilliseconds, stopwatch.ElapsedMilliseconds);
     }
 }

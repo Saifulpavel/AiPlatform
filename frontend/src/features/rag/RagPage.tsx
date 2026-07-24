@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/app/hooks'
 import { selectDefaultProvider } from '@/features/settings/uiSlice'
 import { useLocalModelsQuery } from '@/features/chat/modelsApi'
+import { Timing } from '@/components/Timing'
 import { useRagMutation } from './ragApi'
 
 const METHODS = ['keyword', 'embedding', 'qdrant', 'hybrid']
@@ -34,11 +35,16 @@ export function RagPage() {
     else setModel(undefined)
   }, [isLocal, localModels])
 
+  // request→response মোট সময় (network+queue সহ) — backend-এর খাঁটি সময়ের পাশে দেখাই।
+  const [totalMs, setTotalMs] = useState(0)
+
   const ask = async () => {
     const q = question.trim()
     if (!q) return
+    const started = performance.now()
     try {
       await rag({ question: q, method, provider, model }).unwrap()
+      setTotalMs(performance.now() - started)
     } catch {
       toast.error('উত্তর আনা যায়নি')
     }
@@ -88,7 +94,13 @@ export function RagPage() {
         <div className="space-y-4">
           <Card>
             <CardHeader><CardTitle className="text-base">উত্তর</CardTitle></CardHeader>
-            <CardContent className="whitespace-pre-wrap text-sm">{data.answer}</CardContent>
+            <CardContent className="text-sm">
+              <div className="whitespace-pre-wrap">{data.answer}</div>
+              <Timing
+                totalMs={totalMs}
+                parts={{ retrieval: data.retrievalMs, generation: data.generationMs }}
+              />
+            </CardContent>
           </Card>
 
           {data.sources.length > 0 && (

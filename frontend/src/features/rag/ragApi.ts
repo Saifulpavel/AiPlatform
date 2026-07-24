@@ -8,6 +8,9 @@ export interface RetrievedChunk {
 export interface RagResponse {
   answer: string
   sources: RetrievedChunk[]
+  // backend-এর মাপা: chunk খোঁজা vs LLM উত্তর লেখা — ধীরগতির কারণ আলাদা করে দেখায়।
+  retrievalMs: number
+  generationMs: number
 }
 export interface RagRequest {
   question: string

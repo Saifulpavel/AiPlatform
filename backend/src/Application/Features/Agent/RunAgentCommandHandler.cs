@@ -56,19 +56,21 @@ public class RunAgentCommandHandler(
             new("user", request.Message),
         };
         var toolsUsed = new List<string>();
+        var llmMs = 0L;   // সব turn-এর LLM সময়ের যোগফল (tool execution বাদ)
 
         for (var iteration = 0; iteration < _settings.MaxIterations; iteration++)
         {
             var stopwatch = Stopwatch.StartNew();
             var result = await provider.CompleteWithToolsAsync(messages, toolDefs, cancellationToken);
             stopwatch.Stop();
+            llmMs += stopwatch.ElapsedMilliseconds;
 
             usageRecorder.Record(new LlmUsageRecord(
                 "agent", result.Provider, result.Model, result.InputTokens, result.OutputTokens, stopwatch.ElapsedMilliseconds));
 
             // tool call না চাইলে = final answer।
             if (result.ToolCalls.Count == 0)
-                return new AgentResponse(result.Content ?? string.Empty, toolsUsed);
+                return new AgentResponse(result.Content ?? string.Empty, toolsUsed, llmMs);
 
             // assistant-এর tool-call decision history-তে রাখি (নইলে পরের turn context হারায়)।
             messages.Add(new ChatMessage("assistant", result.Content ?? string.Empty, ToolCalls: result.ToolCalls));

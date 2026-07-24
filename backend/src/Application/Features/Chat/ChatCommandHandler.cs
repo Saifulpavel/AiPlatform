@@ -73,6 +73,7 @@ public class ChatCommandHandler(
                 request.UserId!, request.ConversationId!, message, result.Content, provider, cancellationToken);
 
         return new ChatResponse(result.Content, result.Provider, result.Model,
-            ConversationId: useMemory ? request.ConversationId : null);
+            ConversationId: useMemory ? request.ConversationId : null,
+            LatencyMs: stopwatch.ElapsedMilliseconds);
     }
 }

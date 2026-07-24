@@ -13,4 +13,12 @@ public record ChatResult(string Content, string Provider, string Model, int Inpu
 
 // API-তে ফেরত চ্যাট উত্তর। Cached=true হলে semantic cache থেকে (LLM call হয়নি)।
 // ConversationId সেট থাকলে client পরের turn-এ এটা পাঠিয়ে memory ধরে রাখতে পারে।
-public record ChatResponse(string Answer, string Provider, string Model, bool Cached = false, string? ConversationId = null);
+// LatencyMs = শুধু provider call-এর সময় (embedding/cache/DB বাদ) — model তুলনার জন্য এটাই সঠিক;
+// client-এর মাপা মোট সময়ে network+queue মেশানো থাকে। cache hit-এ 0 (LLM call হয়নি)।
+public record ChatResponse(
+    string Answer,
+    string Provider,
+    string Model,
+    bool Cached = false,
+    string? ConversationId = null,
+    long LatencyMs = 0);
