@@ -18,9 +18,19 @@ public class RunAgentCommandHandler(
 {
     private readonly AgentSettings _settings = settings;
 
-    private const string SystemPrompt =
-        "You are a helpful assistant with access to tools. Call a tool when it helps answer accurately; " +
-        "otherwise answer directly. When you have enough information, give the final answer in Bengali.";
+    // ⚠️ LLM-এর কোনো ঘড়ি নেই। তারিখ না দিলে "জুন মাসের বিক্রি" প্রশ্নে সে বছর **অনুমান** করে
+    // (training data-র বছর বসায়) → tool ভুল date range পায় → "কোনো বিক্রয় নেই"।
+    // তাই প্রতি request-এ আজকের তারিখ prompt-এ ঢোকে।
+    // ponytail: DateTime.UtcNow সরাসরি — TimeProvider inject করার দরকার তখনই, যখন
+    // তারিখ-নির্ভর কিছু test করতে হবে।
+    private static string BuildSystemPrompt() =>
+        $"You are a helpful assistant with access to tools. Today's date is {DateTime.UtcNow:yyyy-MM-dd} (UTC). " +
+        "When the user names a month or day without a year, assume the current year. " +
+        "Call a tool when it helps answer accurately; otherwise answer directly. " +
+        "Never invent numbers — if a tool returns no data, say so plainly instead of reporting zero. " +
+        "If the question is ambiguous in a way that changes which tool arguments you would use, " +
+        "ask the user one short clarifying question instead of guessing. " +
+        "When you have enough information, give the final answer in Bengali.";
 
     public async Task<Result<AgentResponse>> Handle(RunAgentCommand request, CancellationToken cancellationToken)
     {
@@ -42,7 +52,7 @@ public class RunAgentCommandHandler(
 
         var messages = new List<ChatMessage>
         {
-            new("system", SystemPrompt),
+            new("system", BuildSystemPrompt()),
             new("user", request.Message),
         };
         var toolsUsed = new List<string>();

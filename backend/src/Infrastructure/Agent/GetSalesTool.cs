@@ -152,6 +152,8 @@ public class GetSalesTool(ErpDbContext db) : ITool
 
         var limited = rows.Take(topN ?? MaxRows).ToList();
 
+        // ⚠️ দুটো আলাদা যোগফল। topN দিলে LLM আগে grandTotal-কে "শীর্ষ N-এর মোট" ভেবে ভুল বলত,
+        // তাই নাম স্পষ্ট করা + কোনটা কী তা লিখে দেওয়া।
         return Json(new
         {
             fromDate = Text(fromDate),
@@ -159,7 +161,12 @@ public class GetSalesTool(ErpDbContext db) : ITool
             filters = new { customerName, productName, location },
             groupBy,
             currency = "BDT",
-            grandTotalAmount = rows.Sum(r => r.TotalAmount),
+            totalAmountAllRows = rows.Sum(r => r.TotalAmount),
+            totalAmountReturnedRows = limited.Sum(r => r.TotalAmount),
+            note = limited.Count < rows.Count
+                ? $"Showing {limited.Count} of {rows.Count} groups. " +
+                  "totalAmountAllRows covers every matching group, not just the ones listed."
+                : null,
             rowCount = limited.Count,
             truncated = limited.Count < rows.Count,
             rows = limited

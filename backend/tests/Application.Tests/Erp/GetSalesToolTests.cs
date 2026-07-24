@@ -43,7 +43,7 @@ public class GetSalesToolTests : IDisposable
         var result = await Run(new { fromDate = "2026-05-01", toDate = "2026-05-31" });
 
         // মে: করিম ২টা Dell @150000 + রহিম ৫টা মাউস @1000 = 300000 + 5000
-        Assert.Equal(305000m, result.GetProperty("grandTotalAmount").GetDecimal());
+        Assert.Equal(305000m, result.GetProperty("totalAmountAllRows").GetDecimal());
     }
 
     [Fact]
@@ -53,8 +53,8 @@ public class GetSalesToolTests : IDisposable
         var june = await Run(new { fromDate = "2026-06-01", toDate = "2026-06-30" });
 
         Assert.NotEqual(
-            may.GetProperty("grandTotalAmount").GetDecimal(),
-            june.GetProperty("grandTotalAmount").GetDecimal());
+            may.GetProperty("totalAmountAllRows").GetDecimal(),
+            june.GetProperty("totalAmountAllRows").GetDecimal());
     }
 
     // "May masher sell dekhao customer wise"
@@ -80,6 +80,12 @@ public class GetSalesToolTests : IDisposable
         Assert.Single(rows);
         Assert.Equal("Dell XPS 13", rows[0].GetProperty("group").GetString());
         Assert.True(result.GetProperty("truncated").GetBoolean());
+
+        // দুটো যোগফল আলাদা হতেই হবে — এক নাম থাকায় LLM শীর্ষ-N-এর মোট বলে ভুল করেছিল (2026-07-22)।
+        var returned = result.GetProperty("totalAmountReturnedRows").GetDecimal();
+        var all = result.GetProperty("totalAmountAllRows").GetDecimal();
+        Assert.Equal(rows[0].GetProperty("totalAmount").GetDecimal(), returned);
+        Assert.True(all > returned, "all-rows total must exceed the truncated subset");
     }
 
     // "x buyer + y product" — দুই filter একসাথে
@@ -104,7 +110,7 @@ public class GetSalesToolTests : IDisposable
         // জুনের order-এ Dell আর মাউস দুটোই আছে; মাউস filter দিলে শুধু মাউসের টাকা আসবে।
         var result = await Run(new { fromDate = "2026-06-01", toDate = "2026-06-30", productName = "Mouse" });
 
-        Assert.Equal(2000m, result.GetProperty("grandTotalAmount").GetDecimal());
+        Assert.Equal(2000m, result.GetProperty("totalAmountAllRows").GetDecimal());
     }
 
     [Fact]
@@ -114,9 +120,9 @@ public class GetSalesToolTests : IDisposable
         var byName = await Run(new { fromDate = "2026-01-01", toDate = "2026-12-31", location = "Chittagong" });
 
         Assert.Equal(
-            byCode.GetProperty("grandTotalAmount").GetDecimal(),
-            byName.GetProperty("grandTotalAmount").GetDecimal());
-        Assert.Equal(50000m, byCode.GetProperty("grandTotalAmount").GetDecimal());
+            byCode.GetProperty("totalAmountAllRows").GetDecimal(),
+            byName.GetProperty("totalAmountAllRows").GetDecimal());
+        Assert.Equal(50000m, byCode.GetProperty("totalAmountAllRows").GetDecimal());
     }
 
     [Fact]
@@ -128,7 +134,7 @@ public class GetSalesToolTests : IDisposable
 
         var result = await Run(new { fromDate = "2026-05-01", toDate = "2026-05-31" });
 
-        Assert.Equal(305000m, result.GetProperty("grandTotalAmount").GetDecimal());   // অপরিবর্তিত
+        Assert.Equal(305000m, result.GetProperty("totalAmountAllRows").GetDecimal());   // অপরিবর্তিত
         Assert.False(await _db.SalesOrders.AnyAsync(s => s.SalesOrderId == draft && s.Approved));
     }
 

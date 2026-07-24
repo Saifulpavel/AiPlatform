@@ -1,4 +1,5 @@
 using AiPlatform.Application.Common.Interfaces;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace AiPlatform.Infrastructure.Llm;
@@ -12,8 +13,13 @@ public class ChatProviderResolver : IChatProviderResolver
     private readonly Dictionary<string, IChatProvider> _providers = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ProviderConfig> _configs = new(StringComparer.OrdinalIgnoreCase);
     private readonly string _defaultProvider;
+    private readonly IChatProvider? _fallbackChain;
 
-    public ChatProviderResolver(IHttpClientFactory httpClientFactory, IOptions<LlmSettings> options)
+    public ChatProviderResolver(
+        IHttpClientFactory httpClientFactory,
+        IOptions<LlmSettings> options,
+        IOptions<FallbackSettings> fallbackOptions,
+        ILogger<FallbackChatProvider> fallbackLogger)
     {
         _httpClientFactory = httpClientFactory;
         var settings = options.Value;
@@ -28,10 +34,33 @@ public class ChatProviderResolver : IChatProviderResolver
             _configs[name] = config;
             _providers[name] = Build(name, config);
         }
+
+        _fallbackChain = BuildFallbackChain(fallbackOptions.Value, fallbackLogger);
+    }
+
+    // chain-এর যেসব provider usable (key আছে) কেবল তাদের নিয়ে। একটাও না থাকলে null →
+    // fallback নীরবে বন্ধ, স্বাভাবিক resolution চলে।
+    private IChatProvider? BuildFallbackChain(FallbackSettings settings, ILogger<FallbackChatProvider> logger)
+    {
+        if (!settings.Enabled)
+            return null;
+
+        var chain = settings.Chain
+            .Select(name => _providers.GetValueOrDefault(name))
+            .Where(provider => provider is not null)
+            .Select(provider => provider!)
+            .ToList();
+
+        return chain.Count > 1 ? new FallbackChatProvider(chain, logger) : null;
     }
 
     public IChatProvider? Resolve(string? providerName, string? model = null)
     {
+        // caller provider বলেনি → fallback chain (থাকলে)। explicit নাম দিলে chain bypass —
+        // "ollama দিয়ে চালাও" বললে সত্যিই ollama-তেই যাওয়া উচিত।
+        if (string.IsNullOrWhiteSpace(providerName) && string.IsNullOrWhiteSpace(model) && _fallbackChain is not null)
+            return _fallbackChain;
+
         var name = string.IsNullOrWhiteSpace(providerName) ? _defaultProvider : providerName;
 
         // model override নেই → configured default-model instance (cached)।

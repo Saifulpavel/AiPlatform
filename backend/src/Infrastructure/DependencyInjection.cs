@@ -115,6 +115,7 @@ public static class DependencyInjection
 
         // Model routing — auto mode-এ complexity দেখে cheap/strong provider select
         services.Configure<Llm.RoutingSettings>(configuration.GetSection(Llm.RoutingSettings.SectionName));
+        services.Configure<Llm.FallbackSettings>(configuration.GetSection(Llm.FallbackSettings.SectionName));
         services.AddSingleton<IModelRouter, Llm.HeuristicModelRouter>();
 
         // Guardrails — LLM input-এ prompt-injection block + PII redact (trust boundary)
