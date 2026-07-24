@@ -14,8 +14,14 @@ public class EmbeddingRetriever(IEmbeddingProvider embeddingProvider) : IRetriev
 
     public async Task<IReadOnlyList<RetrievedChunk>> RetrieveAsync(string query, int topN, CancellationToken cancellationToken)
     {
-        var corpus = await EnsureCorpusAsync(cancellationToken);
-        var queryVector = await embeddingProvider.EmbedAsync(query, EmbeddingTaskType.RetrievalQuery, cancellationToken);
+        // query-র embedding corpus-এর উপর নির্ভর করে না — একসাথে চালাই।
+        // corpus তৈরি থাকলে (২য় request থেকে) এটা সঙ্গে সঙ্গে ফেরে, তাই খরচ শুধু cold start-এ বাঁচে।
+        var corpusTask = EnsureCorpusAsync(cancellationToken);
+        var queryTask = embeddingProvider.EmbedAsync(query, EmbeddingTaskType.RetrievalQuery, cancellationToken);
+        await Task.WhenAll(corpusTask, queryTask);
+
+        var corpus = await corpusTask;
+        var queryVector = await queryTask;
 
         return corpus
             .Select(c => new RetrievedChunk(c.Chunk, VectorMath.CosineSimilarity(queryVector, c.Vector), "knowledge-base"))
@@ -34,12 +40,14 @@ public class EmbeddingRetriever(IEmbeddingProvider embeddingProvider) : IRetriev
         {
             if (_corpus is not null) return _corpus;
 
-            var built = new List<(string Chunk, float[] Vector)>();
-            foreach (var document in KnowledgeBaseSeed.Documents)
-                foreach (var chunk in TextChunker.Chunk(document))
-                    built.Add((chunk, await embeddingProvider.EmbedAsync(chunk, EmbeddingTaskType.RetrievalDocument, cancellationToken)));
+            var chunks = KnowledgeBaseSeed.Documents.SelectMany(d => TextChunker.Chunk(d)).ToList();
 
-            _corpus = built;
+            // এক এক করে embed করলে প্রতিটার ~500ms যোগ হতো (৫ chunk = ~2.5s cold start)।
+            // সব একসাথে পাঠালে সময় = সবচেয়ে ধীরটার সময়, যোগফল নয়।
+            var vectors = await Task.WhenAll(chunks.Select(chunk =>
+                embeddingProvider.EmbedAsync(chunk, EmbeddingTaskType.RetrievalDocument, cancellationToken)));
+
+            _corpus = [.. chunks.Zip(vectors)];
             return _corpus;
         }
         finally
