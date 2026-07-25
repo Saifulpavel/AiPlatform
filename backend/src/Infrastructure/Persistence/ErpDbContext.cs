@@ -11,6 +11,7 @@ public class ErpDbContext(DbContextOptions<ErpDbContext> options) : DbContext(op
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<ErpUser> ErpUsers => Set<ErpUser>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductWarranty> ProductWarranties => Set<ProductWarranty>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Customer> Customers => Set<Customer>();
 
@@ -63,6 +64,15 @@ public class ErpDbContext(DbContextOptions<ErpDbContext> options) : DbContext(op
             e.Property(x => x.Unit).HasMaxLength(20).IsRequired();
             // Product location-wise আলাদা row — এই index-ই সেই নিয়ম রক্ষা করে।
             e.HasIndex(x => new { x.CompanyId, x.LocationId, x.Name }).IsUnique();
+        });
+
+        builder.Entity<ProductWarranty>(e =>
+        {
+            // এক product-এ এক ধরনের warranty একবারই।
+            e.HasIndex(x => new { x.ProductId, x.WarrantyType }).IsUnique();
+            // enum int নয় — DB পড়ে বোঝা যায়, আর tool-এর JSON output-এও নাম যায়।
+            e.Property(x => x.WarrantyType).HasConversion<string>().HasMaxLength(20).IsRequired();
+            e.Property(x => x.Terms).HasMaxLength(500);
         });
 
         builder.Entity<Supplier>(e =>

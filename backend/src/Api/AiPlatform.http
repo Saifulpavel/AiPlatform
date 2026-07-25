@@ -333,6 +333,54 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 { "message": "HDMI Cable এর serial number দেখাও।" }
 ### Expected: 200 — IsSerialized=false, তাই serial নেই; শুধু পরিমাণ (HO ১২৮, CB ১১৮) বলা উচিত।
 
+### ============================================================
+### ERP tool — get_warranty
+### মেয়াদ = SalesOrder.OrderDate + DurationMonths, হিসাব C#-এ (LLM-এ নয়)।
+### ============================================================
+
+### erp — product-এর offer (বিক্রির তারিখ ছাড়া, তাই মেয়াদ নেই)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "Dell XPS 13 তে কী warranty আছে?" }
+### Expected: 200, get_warranty(productName="Dell") — Service ২৪ মাস + Parts ১২ মাস দুটোই বলা উচিত।
+### শেষ তারিখ বললে **bug** — কোন unit বিক্রি হয়েছে সেটা তো জানা নেই।
+
+### erp — serial দিয়ে মেয়াদ
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "DELL-3-000001-01 সিরিয়ালের warranty কি এখনো আছে?" }
+### Expected: 200, get_warranty(serialNo=...) — বিক্রির তারিখ + প্রতি warranty-র expiresOn/isExpired।
+### serial বিক্রি না হয়ে গুদামে থাকলে found=false + "warranty শুরু হয়নি" (এটাও সঠিক উত্তর)।
+
+### erp — আজীবন warranty
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "SanDisk USB এর warranty কতদিন?" }
+### Expected: 200 — Lifetime, durationMonths=null। "০ মাস" বা কোনো শেষ তারিখ বললে **bug**।
+
+### erp — warranty নেই এমন পণ্য
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "HDMI Cable এ warranty আছে?" }
+### Expected: 200, found=false + note — "এই পণ্যে warranty নেই" বলা উচিত, "খুঁজে পাইনি" নয়।
+
+### erp — policy vs data (দুই tool একসাথে)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "Dell XPS 13 এর warranty কতদিন, আর claim করতে কী কী লাগে?" }
+### Expected: 200, toolsUsed: ["get_warranty", "search_knowledge_base"] — মেয়াদ DB থেকে,
+### claim প্রক্রিয়া KB থেকে। একটামাত্র tool ডাকলে **bug**।
+
 ### erp — INVALID (নেই এমন পণ্য)
 POST {{api}}/agent
 Content-Type: application/json

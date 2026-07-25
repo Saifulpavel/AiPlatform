@@ -1,6 +1,8 @@
 # ERP AI Integration Plan
 
 > **2026-07-20 — কাজ শুরু হলো।** Ollama integration শেষ, hybrid routing live। schema চূড়ান্ত (নিচে §Schema), `ErpDbContext` + entity বানানো চলছে।
+>
+> **2026-07-25 — Warranty যোগ।** `ProductWarranty` table (১৬তম) + `get_warranty` tool। কেন এক table, তিনটা নয় — §Warranty।
 
 
 
@@ -46,7 +48,7 @@ RAG (Phase 3) + tool-calling agent (7h) + multi-tenancy (7d) + guardrails (6d) +
 
 ## ক্রম
 1. ~~Sample ERP DB + entity~~ ✅ 2026-07-22 (১৫ table, ErpDbContext, seed)
-2. ~~Read tools~~ ✅ 2026-07-22 — `get_sales` + `get_stock`
+2. ~~Read tools~~ ✅ 2026-07-22 — `get_sales` + `get_stock`; ✅ 2026-07-25 — `get_warranty` (+ `ProductWarranty` table)
 3. RAG-এ ERP doc feed (A) — বাকি
 4. Write tool + confirm guardrail (`create_invoice`) — শেষে, সাবধানে (B+D)
 5. ~~Frontend agent UX~~ ✅ 2026-07-22 (Chat page-এ Agent toggle + toolsUsed badge + timing)
@@ -64,8 +66,9 @@ RAG (Phase 3) + tool-calling agent (7h) + multi-tenancy (7d) + guardrails (6d) +
 |---|---|---|
 | `get_sales` | কত বিক্রি হয়েছে | fromDate, toDate (আবশ্যক) + customerName, productName, location, groupBy, topN |
 | `get_stock` | এখন কী কত আছে | productName, location, belowQuantity, includeSerials (সব ঐচ্ছিক) |
+| `get_warranty` | warranty আছে কি না, থাকলে কবে শেষ | serialNo / invoiceNo / productName (অন্তত একটা) |
 
-দুটোর গঠন ইচ্ছাকৃতভাবে এক রকম (একই validation, একই JSON আকার, ভুলে throw নয় — `{"error"}` ফেরত
+সবগুলোর গঠন ইচ্ছাকৃতভাবে এক রকম (একই validation, একই JSON আকার, ভুলে throw নয় — `{"error"}` ফেরত
 যাতে LLM শুধরে আবার ডাকতে পারে)। আচরণ আলাদা হলে LLM-ও গুলিয়ে ফেলে।
 
 **⚠️ EF ফাঁদ (দুবার কামড়েছে):** query-র `Select`-এ **positional record constructor** ব্যবহার করলে
@@ -75,7 +78,7 @@ EF SQL-এ নামাতে পারে না ("could not be translated") �
 customer-দের brand-ভিত্তিক লাভ" ধরনের প্রশ্নে হয় নতুন report tool, নয় text-to-SQL লাগবে।
 **text-to-SQL এখন নয়** — ভুল join = ভুল সংখ্যা, tenant ফাঁস, ভারী query; ছোট model খারাপ SQL লেখে।
 
-## Schema — চূড়ান্ত (2026-07-20, ১৫ table)
+## Schema — চূড়ান্ত (2026-07-20, ১৫ table; 2026-07-25-এ ProductWarranty যোগ হয়ে ১৬)
 
 sample ERP = **IT পণ্যের ব্যবসা** (computer, laptop, accessories)। multi-tenant (Company → Location), approval-driven stock.
 
@@ -101,6 +104,7 @@ sample ERP = **IT পণ্যের ব্যবসা** (computer, laptop, acc
 | 13 | CurrentStock | **ledger** — প্রতি approved movement-এ এক row |
 | 14 | CurrentStockDetail | গুদামে এই মুহূর্তে থাকা প্রতিটা serial |
 | 15 | StockBalance | **summary** — Product+Location wise চলতি ব্যালেন্স |
+| 16 | ProductWarranty | product-এ কী warranty আসে (type + মাস) — 2026-07-25 |
 
 ### Stock movement (শুধু approval-এ ঘটে)
 ```
@@ -118,6 +122,41 @@ Unapproved:         stock-এ কোনো প্রভাব নেই
 - **`CurrentStock.Cost` সবসময় কেনার খরচ** (বিক্রয়মূল্য নয়) — এই column stock **valuation**-এর জন্য। বিক্রয়মূল্য `SalesOrderDetail.UnitPrice`-এ আছে; লাভ = দুইয়ের পার্থক্য। বিক্রয়মূল্য বসালে গুদাম খালি হয়েও stock value **negative** দেখাত।
 - একই পণ্য ভিন্ন দামে কেনা হলে: **serialized** → `CurrentStockDetail` দিয়ে ঐ serial-এর হুবহু cost; **non-serialized** → average cost
 
+## Warranty (2026-07-25)
+
+Product-এ warranty column বসেনি, আলাদা table হয়েছে — কারণ **এক পণ্যে একাধিক warranty** থাকে
+(Dell XPS 13: Service ২৪ মাস + Parts ১২ মাস)। column দিয়ে সেটা ধরা যেত না।
+
+Industry-তে warranty তিন স্তরে থাকে; আমরা **শুধু প্রথমটা** বানিয়েছি:
+
+| স্তর | Table | অবস্থা |
+|---|---|---|
+| Offer — product-এ কী warranty আসে | `ProductWarranty` | ✅ আছে |
+| Instance — বিক্রীত unit-এর start/end, extended warranty, ownership transfer | `WarrantyRegistration` | ❌ বাদ |
+| Claim — claim log, status, RMA | `WarrantyClaim` | ❌ বাদ |
+
+Instance স্তর বাদ কারণ সেটা **derive করা যায়** — মেয়াদ শেষ = `SalesOrder.OrderDate + DurationMonths`,
+আর `SalesOrderSerial → SalesOrderDetail → SalesOrder` chain আগে থেকেই আছে। row রাখলে duplicate
+data, আর order date বদলালে stale। Extended warranty বিক্রি হলে, installation date থেকে warranty
+শুরু হলে, বা claim history লাগলে — তখন ঐ দুই table যোগ করতে হবে।
+
+- **শুরুর তারিখ = `SalesOrder.OrderDate`**, `ApprovalDateTime` নয়। ApprovalDateTime seeder চালানোর
+  সময় বসে, আসল বিক্রির সময় নয় — জানুয়ারির বিক্রিরও approval আজকের তারিখে দেখাত।
+- **`DurationMonths` null = আজীবন**; row না থাকা = ঐ ধরনের warranty নেই। দুটো ভিন্ন উত্তর।
+- **Product location-wise আলাদা row**, তাই একই পণ্যের warranty প্রতি branch-এ আলাদা row (১০ spec × ২ branch = ২০)।
+- **মেয়াদের হিসাব C#-এ, LLM-এ নয়** — "২৪ মাস পরে কোন তারিখ, সেটা পেরিয়েছে কি না" ছোট model
+  আত্মবিশ্বাসের সাথে ভুল বলে। tool `expiresOn` / `isExpired` / `daysRemaining` তৈরি করে পাঠায়।
+
+**Doc না DB** — এই ভাগটা না মানলে AI ভুল সংখ্যা বলবে:
+
+| | কোথায় | কে দেয় |
+|---|---|---|
+| product-wise কত মাস, কবে শেষ | DB | `get_warranty` |
+| claim প্রক্রিয়া, কী কভার হয় না, কী কাগজ লাগে | knowledge base doc | `search_knowledge_base` |
+
+তাই `KnowledgeBaseSearchTool`-এর description-এ স্পষ্ট লেখা আছে যে সেখানে product-specific মেয়াদ
+নেই — নইলে LLM policy doc থেকে সংখ্যা "মনে করে" বলে দেয়।
+
 ## Seed data (2026-07-22)
 
 `ErpSeeder` — **deterministic** (fixed seed `20260722`) ও **idempotent** (Company থাকলে skip)।
@@ -126,6 +165,12 @@ Unapproved:         stock-এ কোনো প্রভাব নেই
 ⚠️ Seeder stock নিজে হাতে লেখে না — `ErpStockService.Approve*` ডাকে। তাই seed data ঠিক ততটাই সামঞ্জস্যপূর্ণ যতটা আসল approval-এ হতো।
 
 কী ঢোকে: ১ Company (APC), ২ Location (HO/CB), ২ ErpUser, ১৬ Product (৮ × ২ branch), ৪ Supplier, ৬ Customer, ২৮ PurchaseOrder, ৫৬ SalesOrder, ১৯১ ledger row — সবই ২০২৬ জানুয়ারি→জুলাই।
+
+Warranty ২০ row (2026-07-25)। ইচ্ছাকৃত বৈচিত্র্য, যাতে AI-কে সব কেসে পরীক্ষা করা যায়: একাধিক
+warranty (XPS), আজীবন (SanDisk, `DurationMonths` null), কিছুই নেই (HDMI Cable)।
+
+⚠️ Warranty seed **আলাদা করে idempotent** (`SeedProductWarrantiesAsync`) — table পরে যোগ হয়েছে,
+তাই `if (Companies.Any()) return;` শাখাতেও এটা চলে; নইলে আগে seed হওয়া DB-তে কখনো ঢুকত না।
 
 **যাচাইয়ের জন্য আসল উত্তর** (AI এগুলোই বলা উচিত):
 

@@ -357,6 +357,45 @@ namespace AiPlatform.Infrastructure.Persistence.ErpMigrations
                     b.ToTable("Products");
                 });
 
+            modelBuilder.Entity("AiPlatform.Domain.Entities.Erp.ProductWarranty", b =>
+                {
+                    b.Property<long>("ProductWarrantyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("ProductWarrantyId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("DurationMonths")
+                        .HasColumnType("int");
+
+                    b.Property<long>("ProductId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Terms")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("WarrantyType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("ProductWarrantyId");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("ProductId", "WarrantyType")
+                        .IsUnique();
+
+                    b.ToTable("ProductWarranties");
+                });
+
             modelBuilder.Entity("AiPlatform.Domain.Entities.Erp.PurchaseOrder", b =>
                 {
                     b.Property<long>("PurchaseOrderId")
@@ -868,6 +907,17 @@ namespace AiPlatform.Infrastructure.Persistence.ErpMigrations
                     b.Navigation("Company");
 
                     b.Navigation("Location");
+                });
+
+            modelBuilder.Entity("AiPlatform.Domain.Entities.Erp.ProductWarranty", b =>
+                {
+                    b.HasOne("AiPlatform.Domain.Entities.Erp.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("AiPlatform.Domain.Entities.Erp.PurchaseOrder", b =>

@@ -142,6 +142,7 @@ public static class DependencyInjection
         // Scoped — ErpDbContext scoped, singleton tool ধরে রাখলে captive dependency হতো।
         services.AddScoped<ITool, Agent.GetSalesTool>();
         services.AddScoped<ITool, Agent.GetStockTool>();
+        services.AddScoped<ITool, Agent.GetWarrantyTool>();
 
         // RAG retrievers (keyword + embedding + qdrant)
         services.Configure<Rag.QdrantSettings>(configuration.GetSection(Rag.QdrantSettings.SectionName));

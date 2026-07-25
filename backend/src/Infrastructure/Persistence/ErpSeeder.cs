@@ -37,6 +37,25 @@ public static class ErpSeeder
         ("SanDisk USB 32GB",       "Accessory", "SanDisk",   false,    750m)
     ];
 
+    // কোন পণ্যে কী warranty আসে — Catalog-এর নাম দিয়ে মেলে।
+    // ইচ্ছাকৃত বৈচিত্র্য, যাতে AI-কে সব কেসে পরীক্ষা করা যায়:
+    //  · এক পণ্যে একাধিক warranty (XPS: Service ২৪ + Parts ১২)
+    //  · আজীবন (SanDisk — DurationMonths null)
+    //  · warranty-ই নেই (HDMI Cable ইচ্ছে করে বাদ — "নেই" উত্তরটাও ঠিক আসতে হবে)
+    private static readonly (string ProductName, WarrantyType Type, int? Months, string? Terms)[] WarrantyCatalog =
+    [
+        ("Dell XPS 13",            WarrantyType.Service,     24,   "physical ও liquid damage বাদ"),
+        ("Dell XPS 13",            WarrantyType.Parts,       12,   null),
+        ("HP ProBook 450",         WarrantyType.Service,     12,   "physical ও liquid damage বাদ"),
+        ("HP ProBook 450",         WarrantyType.Parts,       12,   null),
+        ("Lenovo ThinkPad E14",    WarrantyType.Service,     36,   "battery-তে মাত্র ৬ মাস"),
+        ("Desktop PC Core i5",     WarrantyType.Parts,       12,   "assembled — motherboard ও RAM কভার হয়"),
+        ("Desktop PC Core i5",     WarrantyType.Labour,       6,   null),
+        ("Logitech M170 Mouse",    WarrantyType.Replacement,  6,   "seal অক্ষত থাকতে হবে"),
+        ("Logitech K120 Keyboard", WarrantyType.Replacement, 12,   "seal অক্ষত থাকতে হবে"),
+        ("SanDisk USB 32GB",       WarrantyType.Lifetime,    null, "manufacturer-এর আজীবন warranty")
+    ];
+
     private static readonly string[] SupplierNames = ["Star Tech", "Ryans Computers"];
     private static readonly string[] CustomerNames = ["Karim Traders", "Rahim Enterprise", "Bengal IT Solutions"];
 
@@ -46,8 +65,12 @@ public static class ErpSeeder
     public static async Task SeedAsync(ErpDbContext db, CancellationToken ct = default)
     {
         // idempotent — data থাকলে কিছুই করে না (প্রতি startup-এ আবার ঢুকবে না)।
+        // ব্যতিক্রম warranty: table-টা পরে যোগ হয়েছে, তাই আগে seed হওয়া DB-তেও যেন বসে।
         if (await db.Companies.AnyAsync(ct))
+        {
+            await SeedProductWarrantiesAsync(db, ct);
             return;
+        }
 
         var random = new Random(RandomSeed);
         var stock = new ErpStockService(db);
@@ -74,6 +97,37 @@ public static class ErpSeeder
                     await SeedSaleAsync(db, stock, random, company, location, customers, products, monthStart, ct);
             }
         }
+
+        // সব branch-এর product বসার পরে — একবারেই সবগুলোর warranty।
+        await SeedProductWarrantiesAsync(db, ct);
+    }
+
+    // Warranty = product-এর offer (কোন unit বিক্রি হলো তার সাথে সম্পর্ক নেই)।
+    // মেয়াদ কবে শেষ সেটা query-র সময় SalesOrder.InvoiceDate + DurationMonths দিয়ে বেরোয়।
+    private static async Task SeedProductWarrantiesAsync(ErpDbContext db, CancellationToken ct)
+    {
+        if (await db.ProductWarranties.AnyAsync(ct))
+            return;
+
+        // ⚠️ Product location-wise আলাদা row — তাই একই নামের পণ্য প্রতি branch-এ নিজের warranty row পায়।
+        var products = await db.Products
+            .Select(p => new { p.ProductId, p.Name })
+            .ToListAsync(ct);
+
+        var warranties =
+            from product in products
+            join spec in WarrantyCatalog on product.Name equals spec.ProductName
+            select new ProductWarranty
+            {
+                ProductId = product.ProductId,
+                WarrantyType = spec.Type,
+                DurationMonths = spec.Months,
+                Terms = spec.Terms,
+                CreatedBy = SystemUserId
+            };
+
+        db.ProductWarranties.AddRange(warranties);
+        await db.SaveChangesAsync(ct);
     }
 
     private static async Task<Company> SeedCompanyAsync(ErpDbContext db, CancellationToken ct)
