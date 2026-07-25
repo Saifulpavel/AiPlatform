@@ -33,7 +33,11 @@ public class QdrantRetriever(IEmbeddingProvider embeddingProvider, IVectorStore 
             foreach (var chunk in chunks)
             {
                 var vector = await embeddingProvider.EmbedAsync(chunk, EmbeddingTaskType.RetrievalDocument, cancellationToken);
-                points.Add(new VectorPoint(Guid.NewGuid().ToString(), vector, chunk, "knowledge-base"));
+                // id = chunk লেখার hash, random GUID নয়। collection restart-এর পরেও থেকে যায়,
+                // তাই random id দিলে প্রতি restart-এ একই লেখার নতুন কপি জমত (ingestion-এ যে কারণে
+                // IngestionPointId, একই কারণ)। ⚠️ seed doc **বদলালে** পুরোনো chunk তবু পড়ে থাকে —
+                // মোছার কমান্ড docs/troubleshooting.md §৪-এ।
+                points.Add(new VectorPoint(SeedPointId(chunk), vector, chunk, "knowledge-base"));
             }
 
             await vectorStore.EnsureCollectionAsync(points[0].Vector.Length, cancellationToken);
@@ -45,4 +49,7 @@ public class QdrantRetriever(IEmbeddingProvider embeddingProvider, IVectorStore 
             _initLock.Release();
         }
     }
+
+    private static string SeedPointId(string chunk)
+        => new Guid(System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(chunk))).ToString();
 }

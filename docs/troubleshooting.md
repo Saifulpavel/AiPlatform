@@ -12,6 +12,7 @@
 1. [SQL Server port 1433 — "forbidden by its access permissions"](#১-sql-server-port-1433--forbidden-by-its-access-permissions)
 2. [Build "file locked by AiPlatform.Api" — চলন্ত API না মরা](#২-build-file-locked-by-aiplatformapi--চলন্ত-api-না-মরা)
 3. [Claude Browser pane-এ animation/chart "ভাঙা" — rAF fire হয় না](#৩-claude-browser-pane-এ-animationchart-ভাঙা--raf-fire-হয়-না)
+4. [KB doc বদলানোর পরেও AI পুরোনো কথা বলে — Qdrant-এ বাসি chunk](#৪-kb-doc-বদলানোর-পরেও-ai-পুরোনো-কথা-বলে--qdrant-এ-বাসি-chunk)
 
 ---
 
@@ -104,6 +105,41 @@ Get-Process -Name "AiPlatform.Api" -ErrorAction SilentlyContinue
 **কেন কাজ করে:** Playwright-এর Chromium মাথা-সহ/headless দুই মোডেই rAF চালায়; pane-এর renderer কোনো কারণে compositor tick পায় না।
 
 **এককালীন?** না — Browser pane দিয়ে animation verify করতে গেলেই আবার পড়বে। মনে রাখো: pane = DOM যাচাই, Playwright = চোখের যাচাই।
+
+---
+
+## ৪. KB doc বদলানোর পরেও AI পুরোনো কথা বলে — Qdrant-এ বাসি chunk
+
+**লক্ষণ:** `KnowledgeBaseSeed.Documents`-এর কোনো লাইন মুছে/বদলে API restart করার পরেও `qdrant`
+retriever পুরোনো লেখাটাই ফেরত দেয়। কোনো error নেই — উত্তর শুধু ভুল/সেকেলে। `keyword` ও `embedding`
+retriever-এ সমস্যা হয় না (ওরা প্রতি startup-এ memory-তে নতুন করে গড়ে)।
+
+**আসল কারণ:** Qdrant collection **Docker volume-এ থেকে যায়**, process-এর সাথে মরে না।
+`QdrantRetriever` startup-এ seed chunk গুলো upsert করে — id একই হলে overwrite হয়, কিন্তু
+**মুছে ফেলা** লাইনের পুরোনো point কেউ ডিলিট করে না, ওটা collection-এ পড়েই থাকে ও search-এ আসে।
+
+⚠️ **collection-এর নাম `knowledge-base` নয়** — ওটা payload-এর `source` মান। আসল নাম
+`CollectionNaming.ForEmbedding` বানায়, embedding provider/model অনুযায়ী: `aiplatform_rag`,
+`aiplatform_rag_bge-m3`, `aiplatform_rag_ollama`… তাই নাম hardcode না করে সবগুলোতে চালাও।
+
+**ফিক্স** — শুধু seed chunk মোছে (upload করা document অক্ষত, ওদের `source` = ফাইলের নাম):
+```powershell
+foreach ($c in (Invoke-RestMethod "http://localhost:6333/collections").result.collections.name | Where-Object { $_ -like "aiplatform_rag*" }) {
+  $r = Invoke-RestMethod -Method Post -Uri "http://localhost:6333/collections/$c/points/delete?wait=true" -ContentType "application/json" -Body '{"filter":{"must":[{"key":"source","match":{"value":"knowledge-base"}}]}}'
+  "$c -> $($r.result.status)"
+}
+```
+প্রতি লাইনে `-> completed` আসা উচিত। তারপর API restart — নতুন doc আবার index হবে।
+
+**কেন কাজ করে:** filter শুধু `source = "knowledge-base"` point মোছে; upload করা document-এর
+`source` = ফাইলের নাম, তাই ওরা বাদ যায়। পুরো collection ড্রপ করলে upload করা সব document-ও যেত।
+
+**গোনা** (কমান্ডের আগে/পরে, `points/delete` → `points/count` আর body-তে `,"exact":true`):
+2026-07-25-এ পাওয়া গিয়েছিল `aiplatform_rag` = ৬৫, `aiplatform_rag_bge-m3` = ১০,
+`aiplatform_rag_ollama` = ৫ — অথচ seed doc তখন ছিল ৫টা। ৬৫ = ১৩ বার restart-এর জমা কপি।
+
+**এককালীন?** না — যতবার `KnowledgeBaseSeed`-এর কোনো লাইন **মুছবে বা বদলাবে** ততবার। শুধু **নতুন
+লাইন যোগ** করলে লাগে না। (2026-07-25 থেকে point id = chunk লেখার MD5, তাই অন্তত duplicate জমে না।)
 
 ---
 
