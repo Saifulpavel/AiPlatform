@@ -50,7 +50,7 @@ RAG (Phase 3) + tool-calling agent (7h) + multi-tenancy (7d) + guardrails (6d) +
 1. ~~Sample ERP DB + entity~~ ✅ 2026-07-22 (১৫ table, ErpDbContext, seed)
 2. ~~Read tools~~ ✅ 2026-07-22 — `get_sales` + `get_stock`; ✅ 2026-07-25 — `get_warranty` (+ `ProductWarranty` table)
 3. RAG-এ ERP doc feed (A) — বাকি
-4. Write tool + confirm guardrail (`create_invoice`) — শেষে, সাবধানে (B+D)
+4. ~~Write tool~~ ✅ 2026-07-25 — `create_sales_order` (খসড়া-only; confirm-flow লাগেনি, §Write tool)
 5. ~~Frontend agent UX~~ ✅ 2026-07-22 (Chat page-এ Agent toggle + toolsUsed badge + timing)
 
 ## Tool design নীতি (2026-07-22, শেখা)
@@ -67,6 +67,7 @@ RAG (Phase 3) + tool-calling agent (7h) + multi-tenancy (7d) + guardrails (6d) +
 | `get_sales` | কত বিক্রি হয়েছে | fromDate, toDate (আবশ্যক) + customerName, productName, location, groupBy, topN |
 | `get_stock` | এখন কী কত আছে | productName, location, belowQuantity, includeSerials (সব ঐচ্ছিক) |
 | `get_warranty` | warranty আছে কি না, থাকলে কবে শেষ | serialNo / invoiceNo / productName (অন্তত একটা) |
+| `create_sales_order` | **write** — খসড়া order বানায় | customerName, location, items[] (সব আবশ্যক) + orderDate |
 
 সবগুলোর গঠন ইচ্ছাকৃতভাবে এক রকম (একই validation, একই JSON আকার, ভুলে throw নয় — `{"error"}` ফেরত
 যাতে LLM শুধরে আবার ডাকতে পারে)। আচরণ আলাদা হলে LLM-ও গুলিয়ে ফেলে।
@@ -121,6 +122,34 @@ Unapproved:         stock-এ কোনো প্রভাব নেই
 - invariant: `StockBalance.QuantityOnHand == SUM(CurrentStock.Quantity)` (একই Product+Location)
 - **`CurrentStock.Cost` সবসময় কেনার খরচ** (বিক্রয়মূল্য নয়) — এই column stock **valuation**-এর জন্য। বিক্রয়মূল্য `SalesOrderDetail.UnitPrice`-এ আছে; লাভ = দুইয়ের পার্থক্য। বিক্রয়মূল্য বসালে গুদাম খালি হয়েও stock value **negative** দেখাত।
 - একই পণ্য ভিন্ন দামে কেনা হলে: **serialized** → `CurrentStockDetail` দিয়ে ঐ serial-এর হুবহু cost; **non-serialized** → average cost
+
+## Write tool — `create_sales_order` (2026-07-25)
+
+**Tool কখনো approve করে না।** এটাই মূল guardrail, আলাদা confirm-flow ছাড়াই।
+
+schema-তে approve-ই সেই মুহূর্ত যখন stock কমে, ledger row বসে আর `InvoiceNo` assign হয়। tool শুধু
+**unapproved SalesOrder** বানায় — তাই AI ভুল বুঝলেও গুদামের হিসাব অক্ষত, খসড়া মুছে দিলেই শেষ।
+approve মানুষ ERP-তে করে। irreversible কাজটা AI-র হাতেই দেওয়া হয়নি।
+
+তাই নাম `create_invoice` **নয়** — invoice নম্বর approve-এর আগে জন্মায়ই না। যে কাজ tool করে না
+সেই নাম দিলে LLM-ও ভুল প্রতিশ্রুতি দিত ("ইনভয়েস তৈরি হয়েছে")। description-এ "invoice" শব্দটা
+আছে, তাই "invoice বানাও" বললেও routing ঠিক থাকে।
+
+যেসব ক্ষেত্রে row না বসিয়ে **error** ফেরে (প্রতিটার পেছনে কারণ আছে):
+
+| অবস্থা | কেন থামে |
+|---|---|
+| `unitPrice` নেই | দাম আবিষ্কার = টাকার ক্ষতি; জিজ্ঞেস করতে বলা হয় |
+| পণ্য/customer নাম একাধিকে মেলে | নিজে বেছে নিলে ভুল পার্টির নামে order বসত |
+| stock-এর চেয়ে বেশি চাওয়া | ওই খসড়া কখনো approve হতো না — এখনই ধরিয়ে দেওয়া ভালো |
+| quantity ≤ ০, line ২০-র বেশি | সাধারণ input guard |
+
+- **Serialized পণ্যে গুদামের আসল serial বসে** (পুরনো আগে, seeder যেভাবে করে) — নইলে approve-এ
+  "Serial(s) not in stock" throw করত। ⚠️ এটা reservation নয়: একই serial অন্য খসড়াতেও যেতে পারে,
+  সংঘর্ষ হলে approve সশব্দে ব্যর্থ হবে।
+- `CreatedBy` = seed system user, কারণ AppUser → ErpUser ম্যাপিং এখনো নেই (§খোলা প্রশ্ন)।
+- **যা এখনো নেই:** loop থামিয়ে user-confirm (§D-র মূল ভাবনা)। খসড়া reversible বলে সেটা ছাড়াই
+  নিরাপদ। tool যদি কখনো approve/delete করে, তখন confirm-flow **আবশ্যক** হয়ে যাবে।
 
 ## Warranty (2026-07-25)
 

@@ -381,6 +381,52 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 ### Expected: 200, toolsUsed: ["get_warranty", "search_knowledge_base"] — মেয়াদ DB থেকে,
 ### claim প্রক্রিয়া KB থেকে। একটামাত্র tool ডাকলে **bug**।
 
+### ============================================================
+### ERP tool — create_sales_order (একমাত্র WRITE tool)
+### ⚠️ খসড়া বানায়, approve করে না — stock অক্ষত, InvoiceNo নেই।
+### ⚠️ এগুলো চালালে DB-তে সত্যিই row বসে। পরে মুছতে:
+###    DELETE FROM SalesOrderSerials WHERE SalesOrderDetailId IN (SELECT SalesOrderDetailId FROM SalesOrderDetails WHERE SalesOrderId IN (SELECT SalesOrderId FROM SalesOrders WHERE Approved = 0));
+###    DELETE FROM SalesOrderDetails WHERE SalesOrderId IN (SELECT SalesOrderId FROM SalesOrders WHERE Approved = 0);
+###    DELETE FROM SalesOrders WHERE Approved = 0;
+### ============================================================
+
+### erp — খসড়া order বানানো
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "করিম ট্রেডার্সের জন্য হেড অফিস থেকে ৫টা Logitech M170 Mouse, প্রতিটা ১০০০ টাকা করে একটা অর্ডার বানাও।" }
+### Expected: 200, toolsUsed: ["create_sales_order"] — SO নম্বর ফেরত, মোট ৫০০০।
+### উত্তরে **স্পষ্ট বলতে হবে** এটা খসড়া, approve করলে তবেই stock কমবে ও invoice নম্বর বসবে।
+### "ইনভয়েস তৈরি হয়ে গেছে" বললে **bug** — approved=false, invoiceNo=null।
+
+### erp — দাম না বললে বানাবে না
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "করিম ট্রেডার্সের জন্য ২টা Dell XPS 13 এর অর্ডার বানাও।" }
+### Expected: 200, order তৈরি **হবে না** — দাম জিজ্ঞেস করা উচিত। নিজে দাম বসালে **bug**
+### (get_sales থেকে পুরনো দাম এনে বসানোও bug — ওটা ঐ order-এর দাম, এই order-এর নয়)।
+
+### erp — INVALID (স্টকের বেশি)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "করিম ট্রেডার্সের জন্য HO থেকে ৯৯৯টা Dell XPS 13, প্রতিটা ১৫০০০০ টাকা — অর্ডার বানাও।" }
+### Expected: 200, created=false + "Insufficient stock ... on hand" — কত আছে সেটা বলা উচিত।
+### খসড়া বসে গেলে **bug**: ওটা কখনো approve হতো না।
+
+### erp — INVALID (অস্পষ্ট পণ্য)
+POST {{api}}/agent
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "message": "করিম ট্রেডার্সের জন্য HO থেকে ১টা Logitech, ১০০০ টাকা — অর্ডার বানাও।" }
+### Expected: 200, created=false — "Logitech" দুটো পণ্যে মেলে (Mouse, Keyboard), কোনটা জিজ্ঞেস করা উচিত।
+### নিজে একটা বেছে নিলে **bug**।
+
 ### erp — INVALID (নেই এমন পণ্য)
 POST {{api}}/agent
 Content-Type: application/json

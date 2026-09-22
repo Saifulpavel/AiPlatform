@@ -143,6 +143,8 @@ public static class DependencyInjection
         services.AddScoped<ITool, Agent.GetSalesTool>();
         services.AddScoped<ITool, Agent.GetStockTool>();
         services.AddScoped<ITool, Agent.GetWarrantyTool>();
+        // একমাত্র write tool — খসড়া order বানায়, approve করে না (stock অক্ষত)।
+        services.AddScoped<ITool, Agent.CreateSalesOrderTool>();
 
         // RAG retrievers (keyword + embedding + qdrant)
         services.Configure<Rag.QdrantSettings>(configuration.GetSection(Rag.QdrantSettings.SectionName));
