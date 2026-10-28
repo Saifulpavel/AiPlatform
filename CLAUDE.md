@@ -30,6 +30,7 @@
 - সব একসাথে: `.\scripts\dev.ps1` (চালু) / `.\scripts\test.ps1 [-E2E]` (টেস্ট)
 - Telemetry: Aspire dashboard http://localhost:18888 (toggle `Otel:Enabled`)
 - Env/machine সমস্যা (port 1433, locked exe…): আগে `docs/troubleshooting.md` দেখো; নতুন env hack বেরোলে ওখানেই entry যোগ করো
+- নতুন মেশিনে এই project দাঁড় করাতে: `docs/second-device-setup.md` (secrets, `.env`, Claude memory — git যা আনে না)
 
 ## Conventions
 - প্রতিটা capability = আলাদা, স্বাধীনভাবে-testable feature (`Application/Features/<Name>`)।

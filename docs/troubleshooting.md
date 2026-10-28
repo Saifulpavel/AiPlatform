@@ -13,6 +13,7 @@
 2. [Build "file locked by AiPlatform.Api" — চলন্ত API না মরা](#২-build-file-locked-by-aiplatformapi--চলন্ত-api-না-মরা)
 3. [Claude Browser pane-এ animation/chart "ভাঙা" — rAF fire হয় না](#৩-claude-browser-pane-এ-animationchart-ভাঙা--raf-fire-হয়-না)
 4. [KB doc বদলানোর পরেও AI পুরোনো কথা বলে — Qdrant-এ বাসি chunk](#৪-kb-doc-বদলানোর-পরেও-ai-পুরোনো-কথা-বলে--qdrant-এ-বাসি-chunk)
+5. [Qdrant port 6333/6334 — আবার সেই "forbidden by its access permissions"](#৫-qdrant-port-63336334--আবার-সেই-forbidden-by-its-access-permissions)
 
 ---
 
@@ -140,6 +141,48 @@ foreach ($c in (Invoke-RestMethod "http://localhost:6333/collections").result.co
 
 **এককালীন?** না — যতবার `KnowledgeBaseSeed`-এর কোনো লাইন **মুছবে বা বদলাবে** ততবার। শুধু **নতুন
 লাইন যোগ** করলে লাগে না। (2026-07-25 থেকে point id = chunk লেখার MD5, তাই অন্তত duplicate জমে না।)
+
+---
+
+## ৫. Qdrant port 6333/6334 — আবার সেই "forbidden by its access permissions"
+
+**লক্ষণ** (`docker compose up -d`) — বাকি container ওঠে, শুধু Qdrant পড়ে যায়:
+```
+Error response from daemon: ports are not available: exposing port TCP 0.0.0.0:6334 -> 127.0.0.1:0:
+listen tcp 0.0.0.0:6334: bind: An attempt was made to access a socket in a way forbidden by its access permissions.
+```
+
+**আসল কারণ:** §১-এর হুবহু একই জিনিস, শুধু port আলাদা — WinNAT-এর dynamic range এবার
+Qdrant-এর port গিলেছে। 2026-09-23-এ range ছিল `6271–6370`, অর্থাৎ **6333 আর 6334 দুটোই**
+ভেতরে। error শুধু প্রথমটা দেখায়, তাই একটা ঠিক করলে পরেরটায় আটকাবে — **দুটো একসাথে** করো।
+
+**নির্ণয়** (normal PowerShell):
+```powershell
+netsh interface ipv4 show excludedportrange protocol=tcp
+```
+কোনো range-এ `Start ≤ 6333` এবং `6334 ≤ End` হলে এটাই সমস্যা।
+
+**ফিক্স** — **Administrator PowerShell**:
+```powershell
+net stop winnat
+netsh int ipv4 add excludedportrange protocol=tcp startport=6333 numberofports=2
+net start winnat
+```
+তারপর normal PowerShell-এ:
+```powershell
+cd D:\Saiful\AiPlatform
+docker compose up -d
+docker ps
+```
+
+**কেন কাজ করে:** §১-এর ব্যাখ্যাই প্রযোজ্য — `numberofports=2` মানে 6333 ও 6334 দুটোকেই
+administered exclusion বানানো।
+
+**ততক্ষণ কী চলবে:** Qdrant ছাড়াও app চলে। `keyword`, `embedding`, `hybrid` retriever মেমরিতে
+কাজ করে; শুধু `qdrant` retriever অচল। ERP tool গুলো SQL Server-এ, তাই অক্ষত।
+
+**এককালীন?** হ্যাঁ, এই মেশিনে। কিন্তু **নতুন মেশিনে আবার পড়বে** — reserved range প্রতি
+মেশিনে আলাদা। দ্বিতীয় device setup-এ এটা ধরে নিয়েই এগোও (`docs/second-device-setup.md` §৫)।
 
 ---
 
